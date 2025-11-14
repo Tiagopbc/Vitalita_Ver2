@@ -473,7 +473,18 @@ h2 {
 
 @media (max-width: 720px) {
     .App {
-        padding: 16px;
+        padding: 12px 12px 25px;
+    }
+
+    .App-header {
+        margin-bottom: 20px;
+        padding: 14px 16px;
+        border-radius: 24px;
+    }
+
+    h2 {
+        margin-top: 10px;
+        margin-bottom: 14px;
     }
 
     .template-list-others {
@@ -483,8 +494,8 @@ h2 {
     .session-exercise-item {
         grid-template-columns: auto 1fr;
         grid-template-rows: auto auto;
-        gap: 10px 14px;
-        padding-right: 10px;
+        gap: 10px 12px;
+        padding: 14px;
     }
 
     .exercise-checkbox {
@@ -502,12 +513,20 @@ h2 {
         grid-row: 2 / 3;
         align-items: flex-start;
         justify-content: flex-start;
-        margin-top: 5px;
+        margin-top: 6px;
         width: 100%;
+        gap: 8px;
     }
 
-    .exercise-input input {
+    /* peso menor no mobile */
+    .exercise-weight-input {
+        width: 72px;
+    }
+
+    /* observações ocupando o card inteiro */
+    .exercise-note-input {
         width: 100%;
+        max-width: none;
     }
 
     .history-filter-row {
