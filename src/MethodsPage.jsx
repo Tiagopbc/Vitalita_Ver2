@@ -43,8 +43,8 @@ const TRAINING_METHODS = [
 function MethodsPage({ onBack }) {
     return (
         <div className="methods-page">
-            <button className="btn-back" onClick={onBack}>
-                ‹ Voltar
+            <button className="btn-back-primary" onClick={onBack}>
+                Voltar
             </button>
 
             <h2>Métodos de treino</h2>
