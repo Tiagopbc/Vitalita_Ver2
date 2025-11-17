@@ -7,60 +7,97 @@ import HistoryPage from './HistoryPage';
 import MethodsPage from './MethodsPage';
 import './style.css';
 
+const USER_PROFILE_ID = 'Tiago';
+
 function App() {
-    const [activePage, setActivePage] = useState('home'); // 'home' | 'session' | 'history' | 'methods'
-    const [activeWorkoutId, setActiveWorkoutId] = useState(null);
-    const [focusedMethod, setFocusedMethod] = useState('');
+    // lê o localStorage uma vez só, na criação do estado
+    const [activeWorkoutId, setActiveWorkoutId] = useState(() => {
+        const saved = localStorage.getItem('activeWorkoutId');
+        return saved || null;
+    });
 
-    const handleSelectWorkout = (id) => {
+    const [currentView, setCurrentView] = useState(() => {
+        const saved = localStorage.getItem('activeWorkoutId');
+        return saved ? 'workout' : 'home';
+    });
+
+    const [initialMethod, setInitialMethod] = useState('');
+    const [methodsContext, setMethodsContext] = useState({ from: 'home' });
+
+    function handleSelectWorkout(id) {
         setActiveWorkoutId(id);
-        setActivePage('session');
-    };
+        localStorage.setItem('activeWorkoutId', id);
+        setCurrentView('workout');
+    }
 
-    const handleBackToHome = () => {
+    function handleBackToHome() {
+        setCurrentView('home');
         setActiveWorkoutId(null);
-        setActivePage('home');
-    };
+        localStorage.removeItem('activeWorkoutId');
+    }
 
-    const handleOpenHistory = () => {
-        setActivePage('history');
-    };
+    function handleOpenHistory() {
+        setCurrentView('history');
+    }
 
-    const handleCloseHistory = () => {
-        setActivePage('home');
-    };
+    // abrir métodos pelo cabeçalho
+    function handleOpenMethodsFromHeader() {
+        setMethodsContext({ from: 'home' });
+        setInitialMethod('');
+        setCurrentView('methods');
+    }
 
-    const handleOpenMethods = (methodName = '') => {
-        setFocusedMethod(methodName);
-        setActivePage('methods');
-    };
+    // abrir métodos a partir de um exercício do treino
+    function handleOpenMethodsFromWorkout(methodName) {
+        setMethodsContext({ from: 'workout' });
+        setInitialMethod(methodName || '');
+        setCurrentView('methods');
+    }
 
-    const handleCloseMethods = () => {
-        setFocusedMethod('');
-        setActivePage('home');
-    };
+    // voltar da tela de métodos
+    function handleBackFromMethods() {
+        if (methodsContext.from === 'workout' && activeWorkoutId) {
+            setCurrentView('workout');
+        } else {
+            setCurrentView('home');
+        }
+    }
+
+    // voltar da tela de histórico
+    function handleBackFromHistory() {
+        if (activeWorkoutId) {
+            setCurrentView('workout');
+        } else {
+            setCurrentView('home');
+        }
+    }
 
     let content;
 
-    if (activePage === 'history') {
-        content = <HistoryPage onBack={handleCloseHistory} />;
-    } else if (activePage === 'methods') {
+    if (currentView === 'methods') {
         content = (
             <MethodsPage
-                onBack={handleCloseMethods}
-                initialMethod={focusedMethod}
+                onBack={handleBackFromMethods}
+                initialMethod={initialMethod}
             />
         );
-    } else if (activePage === 'session' && activeWorkoutId) {
+    } else if (currentView === 'history') {
+        content = <HistoryPage onBack={handleBackFromHistory} />;
+    } else if (currentView === 'workout' && activeWorkoutId) {
         content = (
             <WorkoutSession
                 workoutId={activeWorkoutId}
                 onBack={handleBackToHome}
-                onOpenMethod={handleOpenMethods}
+                onOpenMethod={handleOpenMethodsFromWorkout}
+                userProfileId={USER_PROFILE_ID}
             />
         );
     } else {
-        content = <HomePage onSelectWorkout={handleSelectWorkout} />;
+        content = (
+            <HomePage
+                onSelectWorkout={handleSelectWorkout}
+            />
+        );
     }
 
     return (
@@ -73,16 +110,16 @@ function App() {
 
                 <div className="header-actions">
                     <button
-                        className="header-secondary-button"
                         type="button"
-                        onClick={() => handleOpenMethods()}
+                        className="header-secondary-button"
+                        onClick={handleOpenMethodsFromHeader}
                     >
                         Métodos de treino
                     </button>
 
                     <button
-                        className="header-history-button"
                         type="button"
+                        className="header-history-button"
                         onClick={handleOpenHistory}
                     >
                         Ver históricos
