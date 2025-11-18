@@ -12,10 +12,15 @@ import {
     orderBy,
     limit,
     getDocs,
-    setDoc
+    setDoc,
+    where,
+    deleteDoc
 } from 'firebase/firestore';
 
+// se quiser, depois dá para unificar este ID com o do workoutStorage.js
 const USER_PROFILE_ID = 'Tiago';
+const USER_ID = 'tiago';
+const DRAFT_COLLECTION = 'workout_session_drafts';
 
 function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
     const [template, setTemplate] = useState(null);
@@ -25,6 +30,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
     const [saving, setSaving] = useState(false);
     const [checkedExercises, setCheckedExercises] = useState({});
 
+    // carrega template, rascunho e última sessão concluída
     useEffect(() => {
         async function fetchWorkoutData() {
             setLoading(true);
@@ -46,8 +52,22 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
                 const newNotes = {};
                 const newChecked = {};
 
+                // 1. tenta carregar rascunho da sessão em andamento
+                const draftRef = doc(
+                    db,
+                    DRAFT_COLLECTION,
+                    `${USER_PROFILE_ID}_${workoutId}`
+                );
+                const draftSnap = await getDoc(draftRef);
+                const draftData = draftSnap.exists() ? draftSnap.data() : null;
+                const draftWeights = draftData?.weights || {};
+                const draftNotes = draftData?.notes || {};
+                const draftChecked = draftData?.checkedExercises || {};
+
+                // 2. busca última sessão concluída deste treino
                 const lastSessionQuery = query(
                     collection(db, 'workout_sessions'),
+                    where('templateId', '==', workoutId),
                     orderBy('completedAt', 'desc'),
                     limit(1)
                 );
@@ -61,9 +81,14 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
                 }
 
                 templateData.exercises.forEach((ex) => {
-                    newWeights[ex.name] = lastSessionData[ex.name]?.weight || '';
-                    newNotes[ex.name] = '';
-                    newChecked[ex.name] = false;
+                    const lastForExercise = lastSessionData[ex.name];
+
+                    newWeights[ex.name] =
+                        draftWeights[ex.name] ??
+                        (lastForExercise ? lastForExercise.weight : '') ??
+                        '';
+                    newNotes[ex.name] = draftNotes[ex.name] ?? '';
+                    newChecked[ex.name] = draftChecked[ex.name] ?? false;
                 });
 
                 setWeights(newWeights);
@@ -78,6 +103,50 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
 
         fetchWorkoutData();
     }, [workoutId]);
+
+    // salvamento parcial em nuvem
+    useEffect(() => {
+        if (!template) {
+            return;
+        }
+
+        const hasAnyData =
+            Object.values(weights).some((w) => w && w !== '') ||
+            Object.values(notes).some((n) => n && n.trim() !== '') ||
+            Object.values(checkedExercises).some((c) => !!c);
+
+        if (!hasAnyData) {
+            return;
+        }
+
+        const persistDraft = async () => {
+            try {
+                const draftRef = doc(
+                    db,
+                    DRAFT_COLLECTION,
+                    `${USER_PROFILE_ID}_${workoutId}`
+                );
+
+                await setDoc(
+                    draftRef,
+                    {
+                        userId: USER_ID,
+                        templateId: workoutId,
+                        templateName: template.name,
+                        weights,
+                        notes,
+                        checkedExercises,
+                        updatedAt: serverTimestamp()
+                    },
+                    { merge: true }
+                );
+            } catch (error) {
+                console.error('Erro ao salvar rascunho da sessão', error);
+            }
+        };
+
+        persistDraft();
+    }, [weights, notes, checkedExercises, template, workoutId]);
 
     const handleWeightChange = (exerciseName, weight) => {
         setWeights((prev) => ({
@@ -118,13 +187,17 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
         });
 
         try {
+            // salva sessão concluída com modelo compatível com HistoryPage e workoutStorage
             await addDoc(collection(db, 'workout_sessions'), {
                 templateId: workoutId,
                 templateName: template.name,
+                userId: USER_ID,
+                createdAt: serverTimestamp(),
                 completedAt: serverTimestamp(),
                 results: sessionResults
             });
 
+            // atualiza perfil para o próximo treino na Home
             const userProfileRef = doc(db, 'user_profile', USER_PROFILE_ID);
             await setDoc(
                 userProfileRef,
@@ -133,6 +206,18 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
                 },
                 { merge: true }
             );
+
+            // apaga rascunho depois que o treino é concluído
+            try {
+                const draftRef = doc(
+                    db,
+                    DRAFT_COLLECTION,
+                    `${USER_PROFILE_ID}_${workoutId}`
+                );
+                await deleteDoc(draftRef);
+            } catch (error) {
+                console.error('Erro ao apagar rascunho da sessão', error);
+            }
 
             alert('Treino salvo com sucesso');
             onBack();
@@ -197,9 +282,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
                                     id={`chk-${ex.name}`}
                                     type="checkbox"
                                     checked={!!checkedExercises[ex.name]}
-                                    onChange={() =>
-                                        handleCheckToggle(ex.name)
-                                    }
+                                    onChange={() => handleCheckToggle(ex.name)}
                                 />
                                 <label htmlFor={`chk-${ex.name}`} />
                             </div>
@@ -213,9 +296,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod }) {
                                 </span>
                                 <span className="exercise-target">
                                     Série: {ex.target}
-                                    {ex.method
-                                        ? ` (${ex.method})`
-                                        : ''}
+                                    {ex.method ? ` (${ex.method})` : ''}
                                 </span>
 
                                 {ex.method && (
