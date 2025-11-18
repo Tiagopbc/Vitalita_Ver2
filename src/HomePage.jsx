@@ -18,7 +18,7 @@ function HomePage({ onSelectWorkout }) {
     useEffect(() => {
         const fetchHomeData = async () => {
             try {
-                // 1. Busca os templates de treino (como antes)
+                // 1. Busca os modelos de treino (como antes)
                 const templatesRef = collection(db, 'workout_templates');
                 const q = query(templatesRef, orderBy('id'));
                 const querySnapshot = await getDocs(q);
@@ -45,7 +45,7 @@ function HomePage({ onSelectWorkout }) {
                 } else {
                     const lastIndex = WORKOUT_SEQUENCE.indexOf(lastWorkoutId);
                     if (lastIndex === -1 || lastIndex === WORKOUT_SEQUENCE.length - 1) {
-                        // Se foi o último da lista (ou não achou), volta pro primeiro
+                        // Se foi o último da lista (ou não achou), volta para primeiro
                         setNextWorkoutId(WORKOUT_SEQUENCE[0]);
                     } else {
                         // Senão, pega o próximo

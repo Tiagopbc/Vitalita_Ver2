@@ -17,8 +17,8 @@
     --radius-lg: 24px;
     --radius-md: 16px;
     --radius-pill: 999px;
-    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text',
-    'Segoe UI', sans-serif;
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", sans-serif;
 }
 
 /* fundo base */
@@ -38,7 +38,7 @@ body {
     min-height: 100vh;
 }
 
-/* layout geral do app */
+/* layout geral */
 
 .app-shell {
     min-height: 100vh;
@@ -202,7 +202,7 @@ body {
 
 .session-exercise-item {
     display: grid;
-    grid-template-columns: auto minmax(0, 1.7fr) minmax(0, 1.9fr);
+    grid-template-columns: auto minmax(0, 1.0fr) minmax(0, 0.25fr);
     column-gap: 16px;
     row-gap: 8px;
     padding: 14px 16px;
@@ -228,7 +228,7 @@ body {
     padding-top: 4px;
 }
 
-.exercise-checkbox input[type='checkbox'] {
+.exercise-checkbox input[type="checkbox"] {
     appearance: none;
     width: 18px;
     height: 18px;
@@ -241,7 +241,7 @@ body {
     box-shadow 0.15s ease, transform 0.1s ease;
 }
 
-.exercise-checkbox input[type='checkbox']:checked {
+.exercise-checkbox input[type="checkbox"]:checked {
     border-color: rgba(34, 197, 94, 0.9);
     background: radial-gradient(
             circle at center,
@@ -252,17 +252,18 @@ body {
     box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
 }
 
-.exercise-checkbox input[type='checkbox']::after {
-    content: '';
+.exercise-checkbox input[type="checkbox"]::after {
+    content: "";
     position: absolute;
     inset: 4px;
     border-radius: inherit;
     background: transparent;
 }
 
-.exercise-checkbox input[type='checkbox']:checked::after {
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="8" viewBox="0 0 12 9"><path fill="white" d="M4.4 8.7L.7 4.8 2.2 3.3 4.4 5.7 9.8.3 11.3 1.8z"/></svg>')
-    center center no-repeat;
+.exercise-checkbox input[type="checkbox"]:checked::after {
+    background:
+            url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="8" viewBox="0 0 12 9"><path fill="white" d="M4.4 8.7L.7 4.8 2.2 3.3 4.4 5.7 9.8.3 11.3 1.8z"/></svg>')
+            center center no-repeat;
 }
 
 /* info textual do exercício */
@@ -270,7 +271,7 @@ body {
 .exercise-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 7px;
 }
 
 .exercise-group {
@@ -291,7 +292,7 @@ body {
     color: var(--text-secondary);
 }
 
-/* botão ver método */
+/* botão ver metodo */
 
 .exercise-method-button {
     margin-top: 6px;
@@ -319,12 +320,14 @@ body {
     background: rgba(15, 23, 42, 0.95);
 }
 
-/* inputs de peso e observação */
+/* inputs de peso, reps e observações no desktop */
 
 .exercise-input {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 10px;
+    row-gap: 8px;
+    align-items: flex-end;
 }
 
 .exercise-input label {
@@ -355,14 +358,19 @@ body {
     background: rgba(15, 23, 42, 1);
 }
 
+/* observações ocupa linha inteira no desktop */
+
 .exercise-note-wrapper {
+    grid-column: 1 / 4;
     width: 100%;
 }
 
-/* sugestão de progressão de carga */
+/* sugestão de progressão */
 
 .exercise-suggestion {
-    grid-column: 1 / 4;
+    grid-column: 2 / 4;      /* fica na área texto + inputs */
+    max-width: 1020px;        /* largura máxima da barra */
+    justify-self: flex-start;
     margin-top: 8px;
     padding: 8px 12px;
     border-radius: 14px;
@@ -374,7 +382,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
     font-size: 0.8rem;
     color: var(--text-secondary);
 }
@@ -486,7 +494,7 @@ body {
     color: var(--text-secondary);
 }
 
-/* gráfico */
+/* gráfico simples */
 
 .history-chart {
     width: 100%;
@@ -577,7 +585,7 @@ body {
     background: rgba(15, 23, 42, 0.55);
 }
 
-/* métodos de treino */
+/* página de métodos */
 
 .methods-page {
     background:
@@ -634,25 +642,28 @@ body {
 
     .session-exercise-item {
         grid-template-columns: auto minmax(0, 1fr);
-        grid-template-rows: auto auto auto;
+        grid-template-rows: auto auto auto auto;
+        padding: 12px 12px;
     }
+
+    /* inputs em coluna no mobile */
 
     .exercise-input {
         grid-column: 1 / 3;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .exercise-note-wrapper {
+        width: 100%;
     }
 
     .exercise-suggestion {
         grid-column: 1 / 3;
         flex-direction: column;
         align-items: flex-start;
-    }
-
-    .history-content {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .methods-grid {
-        grid-template-columns: minmax(0, 1fr);
+        padding: 8px 10px;
     }
 
     .header-actions {
@@ -664,5 +675,13 @@ body {
     .header-history-button,
     .btn-save-session {
         width: 100%;
+    }
+
+    .history-content {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .methods-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

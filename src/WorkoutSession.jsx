@@ -23,6 +23,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
     const [template, setTemplate] = useState(null);
     const [loading, setLoading] = useState(true);
     const [weights, setWeights] = useState({});
+    const [reps, setReps] = useState({});
     const [notes, setNotes] = useState({});
     const [saving, setSaving] = useState(false);
     const [checkedExercises, setCheckedExercises] = useState({});
@@ -30,13 +31,12 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
 
     const profileId = userProfileId || 'Tiago';
 
-    // carrega template, rascunho e últimas sessões para cálculo de sugestão
+    // carregar template, rascunho e últimas sessões para cálculo de sugestão
     useEffect(() => {
         async function fetchWorkoutData() {
             setLoading(true);
 
             try {
-                // template do treino
                 const templateRef = doc(db, 'workout_templates', workoutId);
                 const templateSnap = await getDoc(templateRef);
 
@@ -50,6 +50,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                 setTemplate(templateData);
 
                 const newWeights = {};
+                const newReps = {};
                 const newNotes = {};
                 const newChecked = {};
 
@@ -62,11 +63,11 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                 const draftSnap = await getDoc(draftRef);
                 const draftData = draftSnap.exists() ? draftSnap.data() : null;
                 const draftWeights = draftData?.weights || {};
+                const draftReps = draftData?.reps || {};
                 const draftNotes = draftData?.notes || {};
                 const draftChecked = draftData?.checkedExercises || {};
 
-                // busca últimos treinos no banco
-                // usa orderBy + limit e filtra em memória por templateId e userId
+                // busca últimos treinos, filtra por template e usuário em memória
                 const sessionsQuery = query(
                     collection(db, 'workout_sessions'),
                     orderBy('completedAt', 'desc'),
@@ -74,7 +75,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                 );
                 const sessionsSnap = await getDocs(sessionsQuery);
 
-                let recentSessions = sessionsSnap.docs
+                const recentSessions = sessionsSnap.docs
                     .map((d) => d.data())
                     .filter(
                         (s) =>
@@ -88,11 +89,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                     lastSessionResults = last.results || {};
                 }
 
-                // preenche pesos, observações e checks
-                // prioridade do valor
-                // 1 rascunho atual
-                // 2 última sessão concluída
-                // 3 vazio
+                // preencher pesos, reps, observações e checks
                 templateData.exercises.forEach((ex) => {
                     const lastForExercise = lastSessionResults[ex.name];
 
@@ -100,15 +97,22 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                         draftWeights[ex.name] ??
                         (lastForExercise ? lastForExercise.weight : '') ??
                         '';
+
+                    newReps[ex.name] =
+                        draftReps[ex.name] ??
+                        (lastForExercise ? lastForExercise.reps : '') ??
+                        '';
+
                     newNotes[ex.name] = draftNotes[ex.name] ?? '';
                     newChecked[ex.name] = draftChecked[ex.name] ?? false;
                 });
 
                 setWeights(newWeights);
+                setReps(newReps);
                 setNotes(newNotes);
                 setCheckedExercises(newChecked);
 
-                // calcula sugestões de progressão simples
+                // calcular sugestões de progressão simples, ainda baseada em peso
                 const progression = {};
 
                 if (recentSessions.length >= 2) {
@@ -154,7 +158,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
         fetchWorkoutData();
     }, [workoutId, profileId]);
 
-    // salvamento parcial em nuvem enquanto o usuário edita
+    // salvamento parcial em nuvem enquanto edita
     useEffect(() => {
         if (!template) {
             return;
@@ -162,6 +166,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
 
         const hasAnyData =
             Object.values(weights).some((w) => w && w !== '') ||
+            Object.values(reps).some((r) => r && r !== '') ||
             Object.values(notes).some((n) => n && n.trim() !== '') ||
             Object.values(checkedExercises).some((c) => !!c);
 
@@ -185,6 +190,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                         templateId: workoutId,
                         templateName: template.name,
                         weights,
+                        reps,
                         notes,
                         checkedExercises,
                         updatedAt: serverTimestamp()
@@ -197,12 +203,19 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
         };
 
         persistDraft();
-    }, [weights, notes, checkedExercises, template, workoutId, profileId]);
+    }, [weights, reps, notes, checkedExercises, template, workoutId, profileId]);
 
-    const handleWeightChange = (exerciseName, weight) => {
+    const handleWeightChange = (exerciseName, value) => {
         setWeights((prev) => ({
             ...prev,
-            [exerciseName]: weight
+            [exerciseName]: value
+        }));
+    };
+
+    const handleRepsChange = (exerciseName, value) => {
+        setReps((prev) => ({
+            ...prev,
+            [exerciseName]: value
         }));
     };
 
@@ -238,7 +251,10 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
         template.exercises.forEach((ex) => {
             sessionResults[ex.name] = {
                 weight: Number(weights[ex.name]) || 0,
+                reps: Number(reps[ex.name]) || 0,
                 target: ex.target,
+                minReps: ex.minReps ?? null,
+                maxReps: ex.maxReps ?? null,
                 note: notes[ex.name] || '',
                 method: ex.method || '',
                 completed: !!checkedExercises[ex.name]
@@ -393,6 +409,24 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                                     </label>
                                 </div>
 
+                                <div>
+                                    <label>
+                                        Repetições
+                                        <input
+                                            className="exercise-weight-input"
+                                            type="number"
+                                            inputMode="numeric"
+                                            value={reps[ex.name] || ''}
+                                            onChange={(e) =>
+                                                handleRepsChange(
+                                                    ex.name,
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+                                    </label>
+                                </div>
+
                                 <div className="exercise-note-wrapper">
                                     <label>
                                         Observações
@@ -415,9 +449,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                                 <div className="exercise-suggestion">
                                     <span className="exercise-suggestion-text">
                                         Sugestão, aumentar para{' '}
-                                        <strong>
-                                            {suggestion} kg
-                                        </strong>
+                                        <strong>{suggestion} kg</strong>
                                     </span>
                                     <button
                                         type="button"
