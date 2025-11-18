@@ -1,13 +1,7 @@
 // src/HistoryPage.jsx
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { db } from './firebaseConfig';
-import {
-    collection,
-    getDocs,
-    orderBy,
-    query
-} from 'firebase/firestore';
+import { fetchWorkoutSessions } from './workoutStorage';
 
 function HistoryPage({ onBack }) {
     const [loading, setLoading] = useState(true);
@@ -19,15 +13,13 @@ function HistoryPage({ onBack }) {
     useEffect(() => {
         async function loadHistory() {
             try {
-                const sessionsRef = collection(db, 'workout_sessions');
-                const q = query(sessionsRef, orderBy('completedAt', 'asc'));
-                const snapshot = await getDocs(q);
+                const sessions = await fetchWorkoutSessions();
 
                 const historyByExercise = {};
                 const templateNames = new Set();
 
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
+                sessions.forEach((session) => {
+                    const data = session;
                     const templateName = data.templateName || 'Treino';
                     templateNames.add(templateName);
 
@@ -37,7 +29,10 @@ function HistoryPage({ onBack }) {
                     if (completedAt && typeof completedAt.toDate === 'function') {
                         completedDate = completedAt.toDate();
                     } else if (data.createdAt) {
-                        completedDate = new Date(data.createdAt);
+                        completedDate =
+                            data.createdAt instanceof Date
+                                ? data.createdAt
+                                : new Date(data.createdAt);
                     } else {
                         completedDate = new Date();
                     }
@@ -50,12 +45,13 @@ function HistoryPage({ onBack }) {
                         }
 
                         historyByExercise[exerciseName].push({
-                            id: docSnap.id,
+                            id: session.id,
                             date: completedDate,
                             templateName,
-                            weight: typeof result.weight === 'number'
-                                ? result.weight
-                                : Number(result.weight) || 0,
+                            weight:
+                                typeof result.weight === 'number'
+                                    ? result.weight
+                                    : Number(result.weight) || 0,
                             target: result.target || ''
                         });
                     });
@@ -91,19 +87,18 @@ function HistoryPage({ onBack }) {
             const entries = exerciseHistory[name] || [];
             return entries.some((entry) => entry.templateName === selectedTemplate);
         });
-    }, [allExerciseNames, exerciseHistory, selectedTemplate]);
+    }, [exerciseHistory, allExerciseNames, selectedTemplate]);
 
     const currentExerciseEntries = useMemo(() => {
-        if (!selectedExercise || !exerciseHistory[selectedExercise]) {
+        if (!selectedExercise) {
             return [];
         }
 
-        const base = exerciseHistory[selectedExercise];
+        const base = exerciseHistory[selectedExercise] || [];
 
         if (selectedTemplate === 'todos') {
             return base;
         }
-
         return base.filter((entry) => entry.templateName === selectedTemplate);
     }, [exerciseHistory, selectedExercise, selectedTemplate]);
 
@@ -121,8 +116,11 @@ function HistoryPage({ onBack }) {
     };
 
     const formatWeight = (value) => {
-        if (!value) {
-            return '-';
+        if (!value && value !== 0) {
+            return '';
+        }
+        if (Number.isInteger(value)) {
+            return `${value} kg`;
         }
         return `${value.toFixed(1)} kg`;
     };
@@ -138,46 +136,63 @@ function HistoryPage({ onBack }) {
             );
         }
 
-        if (entries.length === 1) {
-            return (
-                <p className="history-chart-empty">
-                    Faça mais sessões com este exercício para ver o gráfico de evolução.
-                </p>
-            );
-        }
+        const width = 600;
+        const height = 220;
+        const paddingX = 40;
+        const paddingY = 24;
 
         const weights = entries.map((e) => e.weight || 0);
         const minWeight = Math.min(...weights);
         const maxWeight = Math.max(...weights);
 
-        const width = 320;
-        const height = 160;
-        const paddingX = 32;
-        const paddingY = 24;
+        const uniqueDates = Array.from(
+            new Set(entries.map((e) => formatDate(e.date)))
+        );
 
-        const range = maxWeight - minWeight || 1;
+        const getX = (dateStr) => {
+            const idx = uniqueDates.indexOf(dateStr);
+            if (idx === -1) {
+                return paddingX;
+            }
+            if (uniqueDates.length === 1) {
+                return width / 2;
+            }
+            const step =
+                (width - paddingX * 2) /
+                Math.max(uniqueDates.length - 1, 1);
+            return paddingX + idx * step;
+        };
 
-        const points = entries.map((entry, index) => {
-            const x =
-                entries.length === 1
-                    ? width / 2
-                    : paddingX +
-                    ((width - paddingX * 2) * index) /
-                    (entries.length - 1);
+        const getY = (weight) => {
+            if (maxWeight === minWeight) {
+                return height / 2;
+            }
 
-            const normalized = (entry.weight - minWeight) / range;
-            const y = height - paddingY - normalized * (height - paddingY * 2);
+            const normalized =
+                (weight - minWeight) / (maxWeight - minWeight || 1);
+            return (
+                height - paddingY - normalized * (height - paddingY * 2)
+            );
+        };
 
-            return { x, y, entry };
-        });
+        const points = entries.map((entry) => ({
+            x: getX(formatDate(entry.date)),
+            y: getY(entry.weight || 0),
+            entry
+        }));
 
-        const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
+        const pathD = points
+            .map((p, index) => {
+                const prefix = index === 0 ? 'M' : 'L';
+                return `${prefix} ${p.x} ${p.y}`;
+            })
+            .join(' ');
 
         return (
             <svg
                 className="history-chart"
                 viewBox={`0 0 ${width} ${height}`}
-                preserveAspectRatio="none"
+                preserveAspectRatio="xMidYMid meet"
             >
                 <line
                     x1={paddingX}
@@ -194,11 +209,48 @@ function HistoryPage({ onBack }) {
                     className="history-chart-axis"
                 />
 
-                <polyline
-                    points={polylinePoints}
-                    className="history-chart-line"
-                    fill="none"
-                />
+                <text
+                    x={paddingX}
+                    y={paddingY - 4}
+                    className="history-chart-axis-label"
+                >
+                    Peso
+                </text>
+                <text
+                    x={width - paddingX}
+                    y={height - paddingY + 16}
+                    className="history-chart-axis-label"
+                    textAnchor="end"
+                >
+                    Datas
+                </text>
+
+                {uniqueDates.map((dateStr) => {
+                    const x = getX(dateStr);
+                    return (
+                        <g key={dateStr}>
+                            <line
+                                x1={x}
+                                y1={height - paddingY}
+                                x2={x}
+                                y2={height - paddingY + 6}
+                                className="history-chart-tick"
+                            />
+                            <text
+                                x={x}
+                                y={height - paddingY + 18}
+                                className="history-chart-tick-label"
+                                textAnchor="middle"
+                            >
+                                {dateStr}
+                            </text>
+                        </g>
+                    );
+                })}
+
+                {points.length > 0 && (
+                    <path d={pathD} className="history-chart-line" />
+                )}
 
                 {points.map((p, index) => (
                     <g key={index}>
@@ -218,7 +270,8 @@ function HistoryPage({ onBack }) {
                         <text
                             x={p.x}
                             y={height - paddingY + 14}
-                            className="history-chart-date"
+                            className="history-chart-date-label"
+                            textAnchor="middle"
                         >
                             {formatDate(p.entry.date)}
                         </text>
@@ -231,119 +284,128 @@ function HistoryPage({ onBack }) {
     if (loading) {
         return (
             <div className="history-page">
-                <button className="btn-back-primary" onClick={onBack}>
+                <button
+                    type="button"
+                    className="btn-back-primary"
+                    onClick={onBack}
+                >
                     Voltar
                 </button>
-                <h2>Históricos</h2>
+                <h2>Histórico de treinos</h2>
                 <p className="history-intro">Carregando histórico...</p>
             </div>
         );
     }
 
-    if (!allExerciseNames.length) {
-        return (
-            <div className="history-page">
-                <button className="btn-back-primary" onClick={onBack}>
-                    Voltar
-                </button>
-                <h2>Históricos</h2>
-                <p className="history-intro">
-                    Ainda não há treinos registrados. Salve um treino para começar a ver a evolução.
-                </p>
-            </div>
-        );
-    }
+    const hasHistory = Object.keys(exerciseHistory).length > 0;
 
     return (
         <div className="history-page">
-            <button className="btn-back-primary" onClick={onBack}>
+            <button
+                type="button"
+                className="btn-back-primary"
+                onClick={onBack}
+            >
                 Voltar
             </button>
+            <h2>Histórico de treinos</h2>
 
-            <h2>Históricos</h2>
-            <p className="history-intro">
-                Aqui eu acompanho como meus pesos evoluíram em cada exercício ao longo do tempo.
-            </p>
-
-            <div className="history-filters">
-                <div className="history-filter-row">
-                    <div className="history-filter">
-                        <label>Filtrar por treino</label>
-                        <select
-                            value={selectedTemplate}
-                            onChange={(e) => {
-                                setSelectedTemplate(e.target.value);
-                                setSelectedExercise('');
-                            }}
-                        >
-                            {templates.map((tpl) => (
-                                <option key={tpl} value={tpl}>
-                                    {tpl === 'todos' ? 'Todos os treinos' : tpl}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="history-filter">
-                        <label>Exercício</label>
-                        <select
-                            value={selectedExercise}
-                            onChange={(e) => setSelectedExercise(e.target.value)}
-                        >
-                            <option value="">Selecione um exercício</option>
-                            {filteredExercises.map((name) => (
-                                <option key={name} value={name}>
-                                    {name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div className="history-chart-card">
-                <h3>Evolução do peso</h3>
-                <p className="history-chart-title">
-                    {selectedExercise
-                        ? `Exercício: ${selectedExercise}`
-                        : 'Selecione um exercício para visualizar o gráfico.'}
+            {!hasHistory && (
+                <p className="history-intro">
+                    Nenhum treino encontrado ainda. Comece registrando suas
+                    sessões para ver a evolução aqui.
                 </p>
-                {renderChart()}
-            </div>
+            )}
 
-            {selectedExercise && currentExerciseEntries.length > 0 && (
-                <div className="history-card">
-                    <div className="history-card-header">
-                        <h3>Histórico detalhado</h3>
-                        <span>
-              {selectedExercise} ·{' '}
-                            {selectedTemplate === 'todos'
-                                ? 'Todos os treinos'
-                                : `Treino ${selectedTemplate}`}
-            </span>
+            {hasHistory && (
+                <div className="history-content">
+                    <div className="history-filters">
+                        <div className="history-filter-group">
+                            <label>Filtrar por treino</label>
+                            <select
+                                value={selectedTemplate}
+                                onChange={(e) =>
+                                    setSelectedTemplate(e.target.value)
+                                }
+                            >
+                                {templates.map((t) => (
+                                    <option key={t} value={t}>
+                                        {t === 'todos'
+                                            ? 'Todos os treinos'
+                                            : t}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="history-filter-group">
+                            <label>Exercício</label>
+                            <select
+                                value={selectedExercise}
+                                onChange={(e) =>
+                                    setSelectedExercise(e.target.value)
+                                }
+                            >
+                                <option value="">
+                                    Selecione um exercício
+                                </option>
+                                {filteredExercises.map((name) => (
+                                    <option key={name} value={name}>
+                                        {name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
-                    <div className="history-table-wrapper">
-                        <table className="history-table">
-                            <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Treino</th>
-                                <th>Peso</th>
-                                <th>Meta</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {currentExerciseEntries.map((entry) => (
-                                <tr key={entry.id + String(entry.date)}>
-                                    <td>{formatDate(entry.date)}</td>
-                                    <td>{entry.templateName}</td>
-                                    <td>{formatWeight(entry.weight)}</td>
-                                    <td>{entry.target}</td>
+                    <div className="history-chart-card">
+                        <h3>Evolução das cargas</h3>
+                        {renderChart()}
+                    </div>
+
+                    <div className="history-card">
+                        <div className="history-card-header">
+                            <h3>Histórico detalhado</h3>
+                            <span>
+                                {selectedExercise} ·{' '}
+                                {selectedTemplate === 'todos'
+                                    ? 'Todos os treinos'
+                                    : `Treino ${selectedTemplate}`}
+                            </span>
+                        </div>
+
+                        <div className="history-table-wrapper">
+                            <table className="history-table">
+                                <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Treino</th>
+                                    <th>Peso</th>
+                                    <th>Alvo</th>
                                 </tr>
-                            ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                {currentExerciseEntries.map(
+                                    (entry, index) => (
+                                        <tr key={index}>
+                                            <td>
+                                                {formatDate(entry.date)}
+                                            </td>
+                                            <td>
+                                                {entry.templateName}
+                                            </td>
+                                            <td>
+                                                {formatWeight(
+                                                    entry.weight
+                                                )}
+                                            </td>
+                                            <td>{entry.target}</td>
+                                        </tr>
+                                    )
+                                )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}

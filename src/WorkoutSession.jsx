@@ -26,15 +26,17 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
     const [notes, setNotes] = useState({});
     const [saving, setSaving] = useState(false);
     const [checkedExercises, setCheckedExercises] = useState({});
+    const [progressionSuggestions, setProgressionSuggestions] = useState({});
 
     const profileId = userProfileId || 'Tiago';
 
-    // carrega template, rascunho e, se precisar, a última sessão concluída
+    // carrega template, rascunho e últimas sessões para cálculo de sugestão
     useEffect(() => {
         async function fetchWorkoutData() {
             setLoading(true);
 
             try {
+                // template do treino
                 const templateRef = doc(db, 'workout_templates', workoutId);
                 const templateSnap = await getDoc(templateRef);
 
@@ -51,7 +53,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                 const newNotes = {};
                 const newChecked = {};
 
-                // tenta carregar rascunho de sessão em andamento
+                // rascunho da sessão em andamento
                 const draftRef = doc(
                     db,
                     DRAFT_COLLECTION,
@@ -63,23 +65,36 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                 const draftNotes = draftData?.notes || {};
                 const draftChecked = draftData?.checkedExercises || {};
 
-                // busca última sessão concluída, para usar como base se não houver rascunho
-                const lastSessionQuery = query(
+                // busca últimos treinos no banco
+                // usa orderBy + limit e filtra em memória por templateId e userId
+                const sessionsQuery = query(
                     collection(db, 'workout_sessions'),
                     orderBy('completedAt', 'desc'),
-                    limit(1)
+                    limit(20)
                 );
+                const sessionsSnap = await getDocs(sessionsQuery);
 
-                const lastSessionSnap = await getDocs(lastSessionQuery);
+                let recentSessions = sessionsSnap.docs
+                    .map((d) => d.data())
+                    .filter(
+                        (s) =>
+                            s.templateId === workoutId &&
+                            s.userId === USER_ID
+                    );
 
-                let lastSessionData = {};
-                if (!lastSessionSnap.empty) {
-                    const last = lastSessionSnap.docs[0].data();
-                    lastSessionData = last.results || {};
+                let lastSessionResults = {};
+                if (recentSessions.length > 0) {
+                    const last = recentSessions[0];
+                    lastSessionResults = last.results || {};
                 }
 
+                // preenche pesos, observações e checks
+                // prioridade do valor
+                // 1 rascunho atual
+                // 2 última sessão concluída
+                // 3 vazio
                 templateData.exercises.forEach((ex) => {
-                    const lastForExercise = lastSessionData[ex.name];
+                    const lastForExercise = lastSessionResults[ex.name];
 
                     newWeights[ex.name] =
                         draftWeights[ex.name] ??
@@ -92,6 +107,43 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                 setWeights(newWeights);
                 setNotes(newNotes);
                 setCheckedExercises(newChecked);
+
+                // calcula sugestões de progressão simples
+                const progression = {};
+
+                if (recentSessions.length >= 2) {
+                    templateData.exercises.forEach((ex) => {
+                        const historyWeights = recentSessions
+                            .map((session) => {
+                                const results = session.results || {};
+                                const entry = results[ex.name];
+                                if (!entry) {
+                                    return null;
+                                }
+                                const w =
+                                    typeof entry.weight === 'number'
+                                        ? entry.weight
+                                        : Number(entry.weight);
+                                if (!w || Number.isNaN(w) || w <= 0) {
+                                    return null;
+                                }
+                                return w;
+                            })
+                            .filter((w) => w !== null);
+
+                        if (historyWeights.length >= 2) {
+                            const lastW = historyWeights[0];
+                            const prevW = historyWeights[1];
+
+                            if (lastW === prevW) {
+                                const increment = lastW < 40 ? 2.5 : 5;
+                                progression[ex.name] = lastW + increment;
+                            }
+                        }
+                    });
+                }
+
+                setProgressionSuggestions(progression);
             } catch (error) {
                 console.error('Erro ao carregar treino', error);
             } finally {
@@ -102,7 +154,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
         fetchWorkoutData();
     }, [workoutId, profileId]);
 
-    // salvamento parcial em nuvem enquanto você edita
+    // salvamento parcial em nuvem enquanto o usuário edita
     useEffect(() => {
         if (!template) {
             return;
@@ -168,6 +220,13 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
         }));
     };
 
+    const handleApplySuggestion = (exerciseName, suggestedWeight) => {
+        setWeights((prev) => ({
+            ...prev,
+            [exerciseName]: String(suggestedWeight)
+        }));
+    };
+
     const handleSaveSession = async () => {
         if (!template) {
             return;
@@ -181,7 +240,8 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                 weight: Number(weights[ex.name]) || 0,
                 target: ex.target,
                 note: notes[ex.name] || '',
-                method: ex.method || ''
+                method: ex.method || '',
+                completed: !!checkedExercises[ex.name]
             };
         });
 
@@ -204,7 +264,6 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                 { merge: true }
             );
 
-            // apaga rascunho depois que o treino é concluído
             try {
                 const draftRef = doc(
                     db,
@@ -265,6 +324,10 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
             <div className="session-exercises">
                 {template.exercises.map((ex) => {
                     const completed = checkedExercises[ex.name];
+                    const suggestion = progressionSuggestions[ex.name];
+                    const currentWeight = Number(weights[ex.name]) || 0;
+                    const shouldShowSuggestion =
+                        suggestion && suggestion > currentWeight;
 
                     return (
                         <div
@@ -279,7 +342,9 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                                     id={`chk-${ex.name}`}
                                     type="checkbox"
                                     checked={!!checkedExercises[ex.name]}
-                                    onChange={() => handleCheckToggle(ex.name)}
+                                    onChange={() =>
+                                        handleCheckToggle(ex.name)
+                                    }
                                 />
                                 <label htmlFor={`chk-${ex.name}`} />
                             </div>
@@ -328,7 +393,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                                     </label>
                                 </div>
 
-                                <div style={{ width: '100%' }}>
+                                <div className="exercise-note-wrapper">
                                     <label>
                                         Observações
                                         <input
@@ -345,6 +410,29 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, userProfileId }) {
                                     </label>
                                 </div>
                             </div>
+
+                            {shouldShowSuggestion && (
+                                <div className="exercise-suggestion">
+                                    <span className="exercise-suggestion-text">
+                                        Sugestão, aumentar para{' '}
+                                        <strong>
+                                            {suggestion} kg
+                                        </strong>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="exercise-suggestion-apply"
+                                        onClick={() =>
+                                            handleApplySuggestion(
+                                                ex.name,
+                                                suggestion
+                                            )
+                                        }
+                                    >
+                                        Aplicar
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     );
                 })}
