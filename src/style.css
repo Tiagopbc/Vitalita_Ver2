@@ -331,6 +331,17 @@ body {
     transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 
+.session-exercise-item.pr-achieved {
+    border-color: rgba(250, 204, 21, 0.9);
+
+    background:
+            radial-gradient(circle at top left, rgba(250, 204, 21, 0.22), transparent 55%),
+            radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.20), transparent 60%),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+
+    box-shadow: 0 0 18px rgba(250, 204, 21, 0.25);
+}
+
 /* checkbox de conclusão */
 
 .exercise-checkbox {
@@ -392,6 +403,12 @@ body {
     color: var(--text-muted);
 }
 
+.exercise-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .exercise-name {
     font-size: 1rem;
     font-weight: 600;
@@ -401,6 +418,18 @@ body {
 .exercise-target {
     font-size: 0.8rem;
     color: var(--text-secondary);
+}
+
+.pr-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: radial-gradient(circle at top, #facc15, #92400e);
+    color: #111827;
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.45);
 }
 
 /* botão ver metodo */
@@ -823,11 +852,15 @@ input[type="number"] {
 }
 
 .history-row-pr {
-    background: rgba(34, 197, 94, 0.18);
+    background:
+            radial-gradient(circle at top left, rgba(250, 204, 21, 0.22), transparent 55%),
+            radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.18), transparent 60%),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.90));
 }
 
 .history-row-pr td {
     font-weight: 600;
+    color: #fef3c7; /* dourado bem claro */
 }
 
 /* tabela de Reps Máx por carga */

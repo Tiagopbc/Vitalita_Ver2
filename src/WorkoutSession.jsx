@@ -21,14 +21,15 @@ const DRAFT_COLLECTION = 'workout_session_drafts';
 function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
     const [template, setTemplate] = useState(null);
     const [loading, setLoading] = useState(true);
+
     const [weights, setWeights] = useState({});
     const [reps, setReps] = useState({});
     const [notes, setNotes] = useState({});
-    const [saving, setSaving] = useState(false);
     const [checkedExercises, setCheckedExercises] = useState({});
     const [progressionSuggestions, setProgressionSuggestions] = useState({});
-    const [setTypes, setSetTypes] = useState({});
-    const [supersets, setSupersets] = useState({});
+    const [personalRecords, setPersonalRecords] = useState({}); // PR por exercício
+
+    const [saving, setSaving] = useState(false);
 
     const profileId = user.uid;
 
@@ -39,11 +40,13 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
         return n;
     };
 
+    // carregar template + últimos treinos + rascunho
     useEffect(() => {
         async function fetchWorkoutData() {
             setLoading(true);
 
             try {
+                // template
                 const templateRef = doc(db, 'workout_templates', workoutId);
                 const templateSnap = await getDoc(templateRef);
 
@@ -56,13 +59,13 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                 const templateData = templateSnap.data();
                 setTemplate(templateData);
 
+                // estados iniciais
                 const newWeights = {};
                 const newReps = {};
                 const newNotes = {};
                 const newChecked = {};
-                const newSetTypes = {};
-                const newSupersets = {};
 
+                // rascunho
                 const draftRef = doc(
                     db,
                     DRAFT_COLLECTION,
@@ -75,13 +78,12 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                 const draftReps = draftData?.reps || {};
                 const draftNotes = draftData?.notes || {};
                 const draftChecked = draftData?.checkedExercises || {};
-                const draftSetTypes = draftData?.setTypes || {};
-                const draftSupersets = draftData?.supersets || {};
 
+                // últimas sessões
                 const sessionsQuery = query(
                     collection(db, 'workout_sessions'),
                     orderBy('completedAt', 'desc'),
-                    limit(30)
+                    limit(50)
                 );
                 const sessionsSnap = await getDocs(sessionsQuery);
 
@@ -93,12 +95,38 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                             s.userId === user.uid
                     );
 
+                // última sessão deste treino
                 let lastSessionResults = {};
                 if (recentSessions.length > 0) {
                     const last = recentSessions[0];
                     lastSessionResults = last.results || {};
                 }
 
+                // PRs históricos por exercício
+                const records = {};
+                recentSessions.forEach((session) => {
+                    const results = session.results || {};
+                    Object.entries(results).forEach(([exerciseName, r]) => {
+                        const w = toNumber(r.weight);
+                        const rep = toNumber(r.reps);
+                        if (!w && !rep) return;
+
+                        const current = records[exerciseName];
+                        if (!current) {
+                            records[exerciseName] = { weight: w, reps: rep };
+                            return;
+                        }
+
+                        if (w > current.weight) {
+                            records[exerciseName] = { weight: w, reps: rep };
+                        } else if (w === current.weight && rep > current.reps) {
+                            records[exerciseName] = { weight: w, reps: rep };
+                        }
+                    });
+                });
+                setPersonalRecords(records);
+
+                // preencher valores iniciais peso / reps / notas / checkbox
                 templateData.exercises.forEach((ex) => {
                     const lastForExercise = lastSessionResults[ex.name];
 
@@ -114,25 +142,14 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
 
                     newNotes[ex.name] = draftNotes[ex.name] ?? '';
                     newChecked[ex.name] = draftChecked[ex.name] ?? false;
-
-                    newSetTypes[ex.name] =
-                        draftSetTypes[ex.name] ??
-                        lastForExercise?.setType ??
-                        'normal';
-
-                    newSupersets[ex.name] =
-                        draftSupersets[ex.name] ??
-                        lastForExercise?.supersetWith ??
-                        '';
                 });
 
                 setWeights(newWeights);
                 setReps(newReps);
                 setNotes(newNotes);
                 setCheckedExercises(newChecked);
-                setSetTypes(newSetTypes);
-                setSupersets(newSupersets);
 
+                // sugestões de progressão
                 const progression = {};
 
                 if (recentSessions.length >= 2) {
@@ -142,8 +159,10 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                                 const results = session.results || {};
                                 const r = results[ex.name];
                                 if (!r) return null;
+
                                 const w = toNumber(r.weight);
                                 const rep = toNumber(r.reps);
+
                                 const min =
                                     ex.minReps ??
                                     (typeof r.minReps === 'number'
@@ -172,11 +191,10 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                         const last = entries[0];
                         const prev = entries[1];
 
-                        const minReps =
-                            last.minReps ?? prev.minReps ?? null;
-                        const maxReps =
-                            last.maxReps ?? prev.maxReps ?? null;
+                        const minReps = last.minReps ?? prev.minReps ?? null;
+                        const maxReps = last.maxReps ?? prev.maxReps ?? null;
 
+                        // se não tiver faixa alvo, só sugere aumento quando repete peso igual em 2 treinos
                         if (!maxReps) {
                             const lastW = last.weight;
                             const prevW = prev.weight;
@@ -214,17 +232,12 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
 
                         const belowMinCount =
                             recentSameWeightEntries.filter(
-                                (e) =>
-                                    e.reps > 0 &&
-                                    e.reps < limitForLow
+                                (e) => e.reps > 0 && e.reps < limitForLow
                             ).length;
 
                         if (belowMinCount >= 2 && lastWeight > 0) {
                             const decrement = lastWeight <= 20 ? 2.5 : 5;
-                            const newWeight = Math.max(
-                                0,
-                                lastWeight - decrement
-                            );
+                            const newWeight = Math.max(0, lastWeight - decrement);
                             if (newWeight !== lastWeight) {
                                 progression[ex.name] = {
                                     direction: 'down',
@@ -246,6 +259,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
         fetchWorkoutData();
     }, [workoutId, profileId, user.uid]);
 
+    // salvar rascunho automático
     useEffect(() => {
         if (!template) return;
 
@@ -253,9 +267,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
             Object.values(weights).some((w) => w && w !== '') ||
             Object.values(reps).some((r) => r && r !== '') ||
             Object.values(notes).some((n) => n && n.trim() !== '') ||
-            Object.values(checkedExercises).some((c) => !!c) ||
-            Object.values(setTypes).some((t) => t && t !== 'normal') ||
-            Object.values(supersets).some((s) => s && s !== '');
+            Object.values(checkedExercises).some((c) => !!c);
 
         if (!hasAnyData) return;
 
@@ -278,34 +290,19 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                         reps,
                         notes,
                         checkedExercises,
-                        setTypes,
-                        supersets,
                         updatedAt: serverTimestamp()
                     },
                     { merge: true }
                 );
             } catch (error) {
-                console.error(
-                    'Erro ao salvar rascunho da sessão',
-                    error
-                );
+                console.error('Erro ao salvar rascunho da sessão', error);
             }
         };
 
         persistDraft();
-    }, [
-        weights,
-        reps,
-        notes,
-        checkedExercises,
-        setTypes,
-        supersets,
-        template,
-        workoutId,
-        profileId,
-        user.uid
-    ]);
+    }, [weights, reps, notes, checkedExercises, template, workoutId, profileId, user.uid]);
 
+    // handlers simples
     const handleWeightChange = (exerciseName, value) => {
         setWeights((prev) => ({
             ...prev,
@@ -341,32 +338,12 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
         }));
     };
 
-    const handleSetTypeChange = (exerciseName, value) => {
-        setSetTypes((prev) => ({
-            ...prev,
-            [exerciseName]: value
-        }));
-        if (value !== 'superserie') {
-            setSupersets((prev) => ({
-                ...prev,
-                [exerciseName]: ''
-            }));
-        }
-    };
-
-    const handleSupersetChange = (exerciseName, value) => {
-        setSupersets((prev) => ({
-            ...prev,
-            [exerciseName]: value
-        }));
-    };
-
     const adjustWeight = (exerciseName, delta) => {
         setWeights((prev) => {
             const current = toNumber(prev[exerciseName]) || 0;
             let next = current + delta;
             if (next < 0) next = 0;
-            next = Math.round(next * 2) / 2; // trava em 0,5 em 0,5
+            next = Math.round(next * 2) / 2;
             return {
                 ...prev,
                 [exerciseName]: next === 0 ? '' : String(next)
@@ -401,9 +378,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                 maxReps: ex.maxReps ?? null,
                 note: notes[ex.name] || '',
                 method: ex.method || '',
-                completed: !!checkedExercises[ex.name],
-                setType: setTypes[ex.name] || 'normal',
-                supersetWith: supersets[ex.name] || ''
+                completed: !!checkedExercises[ex.name]
             };
         });
 
@@ -434,10 +409,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                 );
                 await deleteDoc(draftRef);
             } catch (error) {
-                console.error(
-                    'Erro ao apagar rascunho da sessão',
-                    error
-                );
+                console.error('Erro ao apagar rascunho da sessão', error);
             }
 
             alert('Treino salvo com sucesso');
@@ -493,22 +465,31 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                         suggestionWeight &&
                         suggestionWeight !== currentWeight;
 
-                    const direction = suggestion?.direction || 'up';
+                    // PR de hoje comparado ao histórico
+                    const record = personalRecords[ex.name];
+                    const currentReps = toNumber(reps[ex.name]) || 0;
+                    let isPr = false;
 
-                    const currentSetType = setTypes[ex.name] || 'normal';
-                    const currentSuperset = supersets[ex.name] || '';
+                    if (record) {
+                        if (currentWeight > record.weight) {
+                            isPr = true;
+                        } else if (
+                            currentWeight === record.weight &&
+                            currentReps > record.reps
+                        ) {
+                            isPr = true;
+                        }
+                    }
 
-                    const otherExercises = template.exercises.filter(
-                        (e) => e.name !== ex.name
-                    );
+                    const cardClassName =
+                        'session-exercise-item' +
+                        (completed ? ' completed' : '') +
+                        (isPr ? ' pr-achieved' : '');
 
                     return (
                         <div
                             key={ex.name}
-                            className={
-                                'session-exercise-item' +
-                                (completed ? ' completed' : '')
-                            }
+                            className={cardClassName}
                         >
                             <div className="exercise-checkbox">
                                 <input
@@ -523,16 +504,25 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                             </div>
 
                             <div className="exercise-info">
-                                <span className="exercise-group">
-                                    {ex.group}
-                                </span>
-                                <span className="exercise-name">
-                                    {ex.name}
-                                </span>
+                <span className="exercise-group">
+                  {ex.group}
+                </span>
+
+                                <div className="exercise-name-row">
+                  <span className="exercise-name">
+                    {ex.name}
+                  </span>
+                                    {isPr && (
+                                        <span className="pr-badge">
+                      PR
+                    </span>
+                                    )}
+                                </div>
+
                                 <span className="exercise-target">
-                                    Série: {ex.target}
+                  Série: {ex.target}
                                     {ex.method ? ` (${ex.method})` : ''}
-                                </span>
+                </span>
 
                                 {ex.method && (
                                     <button
@@ -557,10 +547,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                                                 type="button"
                                                 className="btn-adjust"
                                                 onClick={() =>
-                                                    adjustWeight(
-                                                        ex.name,
-                                                        -0.5
-                                                    )
+                                                    adjustWeight(ex.name, -0.5)
                                                 }
                                             >
                                                 −
@@ -574,17 +561,17 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                                                 inputMode="decimal"
                                                 value={weights[ex.name] || ''}
                                                 onChange={(e) =>
-                                                    handleWeightChange(ex.name, e.target.value)
+                                                    handleWeightChange(
+                                                        ex.name,
+                                                        e.target.value
+                                                    )
                                                 }
                                             />
                                             <button
                                                 type="button"
                                                 className="btn-adjust"
                                                 onClick={() =>
-                                                    adjustWeight(
-                                                        ex.name,
-                                                        0.5
-                                                    )
+                                                    adjustWeight(ex.name, 0.5)
                                                 }
                                             >
                                                 +
@@ -602,10 +589,7 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                                                 type="button"
                                                 className="btn-adjust"
                                                 onClick={() =>
-                                                    adjustReps(
-                                                        ex.name,
-                                                        -1
-                                                    )
+                                                    adjustReps(ex.name, -1)
                                                 }
                                             >
                                                 −
@@ -619,17 +603,17 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                                                 inputMode="numeric"
                                                 value={reps[ex.name] || ''}
                                                 onChange={(e) =>
-                                                    handleRepsChange(ex.name, e.target.value)
+                                                    handleRepsChange(
+                                                        ex.name,
+                                                        e.target.value
+                                                    )
                                                 }
                                             />
                                             <button
                                                 type="button"
                                                 className="btn-adjust"
                                                 onClick={() =>
-                                                    adjustReps(
-                                                        ex.name,
-                                                        1
-                                                    )
+                                                    adjustReps(ex.name, 1)
                                                 }
                                             >
                                                 +
@@ -655,85 +639,17 @@ function WorkoutSession({ workoutId, onBack, onOpenMethod, user }) {
                                         />
                                     </label>
                                 </div>
-
-                                {/* Tipo de série e super série */}
-                                <div className="exercise-extra-row">
-                                    <div className="exercise-set-type">
-                                        <label>
-                                            Tipo de série
-                                            <select
-                                                value={currentSetType}
-                                                onChange={(e) =>
-                                                    handleSetTypeChange(
-                                                        ex.name,
-                                                        e.target.value
-                                                    )
-                                                }
-                                            >
-                                                <option value="normal">
-                                                    Normal
-                                                </option>
-                                                <option value="dropset">
-                                                    Drop set
-                                                </option>
-                                                <option value="biserie">
-                                                    Bi série
-                                                </option>
-                                                <option value="superserie">
-                                                    Super série
-                                                </option>
-                                            </select>
-                                        </label>
-                                    </div>
-
-                                    {currentSetType === 'superserie' && (
-                                        <div className="exercise-superset">
-                                            <label>
-                                                Com qual exercício
-                                                <select
-                                                    value={currentSuperset}
-                                                    onChange={(e) =>
-                                                        handleSupersetChange(
-                                                            ex.name,
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                >
-                                                    <option value="">
-                                                        Selecionar
-                                                    </option>
-                                                    {otherExercises.map(
-                                                        (other) => (
-                                                            <option
-                                                                key={
-                                                                    other.name
-                                                                }
-                                                                value={
-                                                                    other.name
-                                                                }
-                                                            >
-                                                                {other.name}
-                                                            </option>
-                                                        )
-                                                    )}
-                                                </select>
-                                            </label>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
 
                             {shouldShowSuggestion && (
                                 <div className="exercise-suggestion">
-                                    <span className="exercise-suggestion-text">
-                                        Sugestão,{' '}
-                                        {direction === 'down'
-                                            ? 'reduzir para '
-                                            : 'aumentar para '}
-                                        <strong>
-                                            {suggestionWeight} kg
-                                        </strong>
-                                    </span>
+                  <span className="exercise-suggestion-text">
+                    Sugestão,{' '}
+                      {suggestion?.direction === 'down'
+                          ? 'reduzir para '
+                          : 'aumentar para '}
+                      <strong>{suggestionWeight} kg</strong>
+                  </span>
                                     <button
                                         type="button"
                                         className="exercise-suggestion-apply"
