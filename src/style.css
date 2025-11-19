@@ -535,7 +535,7 @@ input[type="number"] {
 
 .exercise-input {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 260px));
+    grid-template-columns: repeat(1, minmax(0, 200px));
     column-gap: 20px;
     row-gap: 10px;
     align-items: flex-end;
@@ -554,6 +554,7 @@ input[type="number"] {
 .exercise-input label {
     display: flex;
     flex-direction: column;
+    gap: 6px;              /* aqui você aumenta o espaço entre o texto e o campo */
     font-size: 0.75rem;
     color: var(--text-secondary);
 }
@@ -997,6 +998,14 @@ input[type="number"] {
         border-radius: 18px;
     }
 
+    .exercise-input label,
+    .exercise-note-wrapper label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;   /* ajuste fino, pode usar 6 ou 10 se quiser mais ou menos espaço */
+    }
+
+
     /* checkbox maior no mobile */
 
     .exercise-checkbox input[type="checkbox"] {
@@ -1017,7 +1026,7 @@ input[type="number"] {
     }
 
     .exercise-note-wrapper {
-        grid-column: 1 / 3;
+        grid-column: 1 / 2;
         width: 100%;
         margin-top: 6px;
     }
