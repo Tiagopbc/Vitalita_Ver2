@@ -3,20 +3,26 @@
     --bg-surface: #050816;
     --bg-card: #0b1120;
     --bg-card-soft: #020617;
+
     --accent: #3abff8;
     --accent-strong: #0ea5e9;
     --accent-deep: #1d4ed8;
     --accent-soft: #dbeafe;
     --accent-soft-alpha: rgba(59, 130, 246, 0.24);
+
     --text-primary: #e5e7eb;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
+
     --border-soft: #1e293b;
     --border-strong: #38bdf8;
+
     --shadow-soft: 0 34px 120px rgba(15, 23, 42, 0.95);
+
     --radius-lg: 24px;
     --radius-md: 16px;
     --radius-pill: 999px;
+
     --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", sans-serif;
 }
@@ -38,7 +44,7 @@ body {
     min-height: 100vh;
 }
 
-/* layout geral (opcional, para um container central) */
+/* layout geral */
 
 .app-shell {
     min-height: 100vh;
@@ -55,11 +61,14 @@ body {
     max-width: 1120px;
 }
 
-/* header principal (se você usar esse layout) */
+/* header principal */
 
 .app-header {
     text-align: center;
     margin-bottom: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .app-logo-name {
@@ -74,13 +83,14 @@ body {
 .app-header-subtitle {
     font-size: 0.95rem;
     color: var(--text-secondary);
+    margin-bottom: 16px;
 }
 
 .app-header-card {
-    margin-top: 20px;
+    margin-top: 12px;
     padding: 18px 24px;
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(15, 23, 42, 0.9);
+    border: 0.75px solid rgba(15, 23, 42, 0.9);
     background:
             radial-gradient(circle at top left, rgba(59, 130, 246, 0.25), transparent 55%),
             radial-gradient(circle at top right, rgba(14, 165, 233, 0.2), transparent 60%),
@@ -94,7 +104,7 @@ body {
     gap: 12px;
 }
 
-/* botões principais */
+/* botões principais topo */
 
 .header-secondary-button,
 .header-history-button,
@@ -148,7 +158,7 @@ body {
     opacity: 0.95;
 }
 
-/* botão voltar */
+/* botão voltar, com destaque dentro do treino */
 
 .btn-back-primary {
     border-radius: var(--radius-pill);
@@ -163,7 +173,17 @@ body {
     color: var(--text-secondary);
     margin-bottom: 18px;
     transition: transform 0.12s ease, box-shadow 0.15s ease, color 0.12s ease,
-    border-color 0.12s ease;
+    border-color 0.12s ease, background 0.12s ease;
+}
+
+.workout-session .btn-back-primary {
+    border-color: rgba(56, 189, 248, 0.8);
+    background: radial-gradient(
+            circle at top left,
+            rgba(56, 189, 248, 0.18),
+            rgba(15, 23, 42, 0.96)
+    );
+    color: #e5f0ff;
 }
 
 .btn-back-primary:hover {
@@ -173,13 +193,15 @@ body {
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.8);
 }
 
-/* tela inicial */
+/* ====================== */
+/*        HOME PAGE       */
+/* ====================== */
 
 .homepage {
     margin-top: 12px;
     padding: 24px;
     border-radius: 24px;
-    border: 1px solid var(--border-soft);
+    border: 0.75px solid var(--border-soft);
     background: linear-gradient(135deg, #0a0f1a, #000000);
     box-shadow: 0 22px 50px rgba(0, 0, 0, 0.7);
 }
@@ -198,7 +220,7 @@ body {
     border-top: 1px solid rgba(30, 41, 59, 0.9);
 }
 
-/* próximo treino na home */
+/* próximo treino */
 
 .homepage h2 + .template-button-next {
     margin-top: 8px;
@@ -247,7 +269,7 @@ body {
     color: var(--accent-soft);
 }
 
-/* outros treinos na home */
+/* outros treinos */
 
 .template-list-others {
     display: grid;
@@ -277,7 +299,9 @@ body {
     transform: translateY(-1px);
 }
 
-/* cartão de treino atual */
+/* ====================== */
+/*     TREINO ATUAL       */
+/* ====================== */
 
 .workout-session {
     background:
@@ -285,7 +309,7 @@ body {
             linear-gradient(145deg, #020617 0%, #020617 40%, #000 100%);
     border-radius: var(--radius-lg);
     padding: 24px;
-    border: 1px solid rgba(15, 23, 42, 0.95);
+    border: 0.75px solid rgba(15, 23, 42, 0.95);
     box-shadow: var(--shadow-soft);
 }
 
@@ -311,34 +335,34 @@ body {
     row-gap: 8px;
     padding: 14px 22px 16px 14px;
     border-radius: 18px;
-    border: 1px solid rgba(15, 23, 42, 0.95);
+    border: 0.75px solid rgba(15, 23, 42, 0.95);
     background:
             radial-gradient(circle at top left, rgba(30, 64, 175, 0.35), transparent 60%),
             linear-gradient(135deg, #020617 0%, #050816 55%, #000 100%);
     position: relative;
 }
 
+/* card concluído */
+
 .session-exercise-item.completed {
     border-color: rgba(16, 185, 129, 0.75);
-
     background:
             radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 60%),
             radial-gradient(circle at bottom right, rgba(5, 150, 105, 0.16), transparent 65%),
             linear-gradient(135deg, rgba(10, 20, 20, 0.85), rgba(5, 15, 15, 0.70));
-
     box-shadow: 0 0 14px rgba(16, 185, 129, 0.18);
     opacity: 1;
     transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 
+/* card com PR */
+
 .session-exercise-item.pr-achieved {
     border-color: rgba(250, 204, 21, 0.9);
-
     background:
             radial-gradient(circle at top left, rgba(250, 204, 21, 0.22), transparent 55%),
             radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.20), transparent 60%),
             linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
-
     box-shadow: 0 0 18px rgba(250, 204, 21, 0.25);
 }
 
@@ -403,46 +427,11 @@ body {
     color: var(--text-muted);
 }
 
-/* linha que contém os dois botões */
-.exercise-actions-row {
+.exercise-name-row {
     display: flex;
-    gap: 8px;
-    margin-top: 6px;
-    justify-content: flex-start;
-    align-items: flex-end;
-}
-
-.exercise-method-button,
-.exercise-history-button {
-    margin-top: 0;
-    border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    padding: 6px 16px;
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    background: rgba(15, 23, 42, 0.75);
-    color: var(--text-secondary);
-    cursor: pointer;
-    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
-    line-height: 1;
-    width: 130px;          /* mesma largura para os dois */
-    white-space: nowrap;   /* não quebra linha dentro do botão */
-    transition: border-color 0.14s ease, color 0.14s ease,
-    background 0.14s ease, transform 0.1s ease;
+    gap: 6px;
 }
-
-.exercise-method-button:hover,
-.exercise-history-button:hover {
-    border-color: rgba(148, 163, 184, 0.9);
-    color: #e5e7eb;
-    transform: translateY(-1px);
-    background: rgba(15, 23, 42, 0.95);
-}
-
 
 .exercise-name {
     font-size: 1rem;
@@ -455,37 +444,53 @@ body {
     color: var(--text-secondary);
 }
 
+/* badge PR */
+
 .pr-badge {
-    padding: 2px 8px;
+    padding: 3px 10px;
     border-radius: 999px;
+    background:
+            radial-gradient(circle at top, rgba(250, 204, 21, 0.9), rgba(245, 158, 11, 0.9));
+    border: 1px solid rgba(250, 204, 21, 0.9);
     font-size: 0.65rem;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    background: radial-gradient(circle at top, #facc15, #92400e);
     color: #111827;
-    box-shadow: 0 0 10px rgba(250, 204, 21, 0.45);
+    box-shadow: 0 0 14px rgba(250, 204, 21, 0.45);
 }
 
-/* botão ver metodo */
+/* linha de botões método e histórico */
 
-.exercise-method-button {
-    margin-top: 6px;
-    align-self: flex-start;
+.exercise-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.exercise-method-button,
+.exercise-history-button {
     border-radius: 999px;
     border: 1px solid rgba(148, 163, 184, 0.4);
-    padding: 5px 10px;
+    padding: 6px 16px;
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    background: rgba(15, 23, 42, 0.75);
-    color: var(--text-secondary);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
     transition: border-color 0.14s ease, color 0.14s ease,
     background 0.14s ease, transform 0.1s ease;
+}
+
+/* método, visual neutro */
+
+.exercise-method-button {
+    background: rgba(15, 23, 42, 0.75);
+    color: var(--text-secondary);
 }
 
 .exercise-method-button:hover {
@@ -495,7 +500,25 @@ body {
     background: rgba(15, 23, 42, 0.95);
 }
 
-/* tirar as setinhas dos inputs numéricos */
+/* histórico com gradiente suave, inspirado no botão principal */
+
+.exercise-history-button {
+    background:
+            radial-gradient(circle at top left, rgba(59, 130, 246, 0.2), transparent 55%),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.98));
+    color: var(--text-secondary);
+}
+
+.exercise-history-button:hover {
+    border-color: rgba(96, 165, 250, 0.9);
+    color: #e5e7eb;
+    transform: translateY(-1px);
+    background:
+            radial-gradient(circle at top left, rgba(59, 130, 246, 0.35), transparent 60%),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 1));
+}
+
+/* inputs numéricos sem setas */
 
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -508,7 +531,7 @@ input[type="number"] {
     appearance: textfield;
 }
 
-/* bloco de inputs de peso, reps e observações */
+/* agrupamento de peso, reps e observações */
 
 .exercise-input {
     display: grid;
@@ -517,7 +540,6 @@ input[type="number"] {
     row-gap: 10px;
     align-items: flex-end;
     justify-content: flex-start;
-
     pointer-events: none;   /* bloqueia clique no contêiner e no espaço vazio */
 }
 
@@ -536,13 +558,13 @@ input[type="number"] {
     color: var(--text-secondary);
 }
 
-/* largura do campo numérico */
+/* campo numérico */
 
 .exercise-weight-input {
     width: 52px;
 }
 
-/* estilo base dos inputs de peso e reps */
+/* base dos inputs de peso e reps */
 
 .exercise-number-input {
     height: 26px;
@@ -556,12 +578,12 @@ input[type="number"] {
     color: #020617;
 }
 
-/* impedir zoom automático do iPhone */
+/* impede zoom automático do iPhone */
+
 .exercise-number-input,
 .exercise-note-input {
     font-size: 16px !important;
 }
-
 
 /* placeholder */
 
@@ -570,13 +592,20 @@ input[type="number"] {
     opacity: 0.7;
 }
 
-/* quando tiver valor */
+/* quando tiver valor, micro glow na caixa */
 
 .exercise-number-input.filled {
     font-weight: 600;
     color: #020617;
     border-color: rgba(148, 163, 184, 0.9);
 }
+
+.exercise-input-row:has(.exercise-number-input.filled) {
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.15);
+    border-radius: 999px;
+}
+
+/* área de observações */
 
 .exercise-note-input {
     width: 100%;
@@ -585,7 +614,6 @@ input[type="number"] {
     background: rgba(30, 41, 59, 0.6);
     color: var(--text-primary);
     padding: 8px 10px;
-    font-size: 0.85rem;
     outline: none;
     transition: border-color 0.14s ease, box-shadow 0.16s ease,
     background 0.14s ease;
@@ -606,13 +634,15 @@ input[type="number"] {
 
 /* linha horizontal com botões e input */
 
-/* linha horizontal com botões e input */
 .exercise-input-row {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     margin-top: 4px;
-    pointer-events: none; /* impede cliques fora dos botões */
+    padding: 4px 6px;                       /* bem pequeno */
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.9);
+    width: fit-content;                     /* abraça só os filhos */
 }
 
 .btn-adjust,
@@ -621,16 +651,16 @@ input[type="number"] {
     pointer-events: auto;
 }
 
-/* botões de incremento rápido */
+/* botões de incremento */
 
 .btn-adjust {
     border-radius: 999px;
     border: 1px solid rgba(148, 163, 184, 0.6);
     background: rgba(15, 23, 42, 0.9);
     color: var(--text-secondary);
-    width: 32px;      /* largura fixa */
-    height: 32px;     /* altura fixa, vira um círculo mesmo */
-    padding: 0;       /* não aumenta a área clicável */
+    width: 32px;
+    height: 32px;
+    padding: 0;
     font-size: 0.9rem;
     cursor: pointer;
     text-align: center;
@@ -648,28 +678,6 @@ input[type="number"] {
     transform: translateY(-1px);
 }
 
-/* linha extra para tipo de série e super série */
-
-.exercise-extra-row {
-    grid-column: 1 / 4;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 6px;
-}
-
-.exercise-set-type select,
-.exercise-superset select {
-    margin-top: 4px;
-    border-radius: 10px;
-    border: 1px solid rgba(30, 64, 175, 0.6);
-    background: rgba(15, 23, 42, 0.9);
-    color: var(--text-primary);
-    padding: 6px 10px;
-    font-size: 0.8rem;
-    outline: none;
-}
-
 /* sugestão de progressão */
 
 .exercise-suggestion {
@@ -677,7 +685,7 @@ input[type="number"] {
     margin-top: 8px;
     padding: 8px 12px;
     border-radius: 14px;
-    border: 1px solid rgba(56, 189, 248, 0.5);
+    border: 0.75px solid rgba(56, 189, 248, 0.5);
     background:
             radial-gradient(circle at top left, rgba(59, 130, 246, 0.25), transparent 60%),
             radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.16), transparent 60%),
@@ -722,7 +730,9 @@ input[type="number"] {
     opacity: 0.95;
 }
 
-/* histórico */
+/* ====================== */
+/*        HISTÓRICO       */
+/* ====================== */
 
 .history-page {
     background:
@@ -730,7 +740,7 @@ input[type="number"] {
             linear-gradient(160deg, #020617 0%, #000 70%);
     border-radius: var(--radius-lg);
     padding: 24px;
-    border: 1px solid rgba(15, 23, 42, 0.95);
+    border: 0.75px solid rgba(15, 23, 42, 0.95);
     box-shadow: var(--shadow-soft);
 }
 
@@ -779,7 +789,7 @@ input[type="number"] {
 .history-chart-card,
 .history-card {
     border-radius: var(--radius-md);
-    border: 1px solid rgba(15, 23, 42, 0.96);
+    border: 0.75px solid rgba(15, 23, 42, 0.96);
     background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.75), #020617);
     padding: 14px 14px 16px;
 }
@@ -800,45 +810,6 @@ input[type="number"] {
 .history-chart {
     width: 100%;
     height: auto;
-}
-
-.history-chart-axis {
-    stroke: rgba(51, 65, 85, 0.95);
-    stroke-width: 1;
-}
-
-.history-chart-tick {
-    stroke: rgba(51, 65, 85, 0.95);
-    stroke-width: 1;
-}
-
-.history-chart-axis-label {
-    fill: var(--text-muted);
-    font-size: 0.72rem;
-}
-
-.history-chart-tick-label {
-    fill: var(--text-muted);
-    font-size: 0.7rem;
-}
-
-.history-chart-line {
-    fill: none;
-    stroke: var(--accent-strong);
-    stroke-width: 1.7;
-}
-
-.history-chart-point {
-    fill: #e5e7eb;
-}
-
-.history-chart-label {
-    fill: var(--accent-soft);
-    font-size: 0.68rem;
-}
-
-.history-chart-date-label {
-    fill: transparent;
 }
 
 /* tabela */
@@ -886,6 +857,8 @@ input[type="number"] {
     background: rgba(15, 23, 42, 0.55);
 }
 
+/* linha de PR na tabela */
+
 .history-row-pr {
     background:
             radial-gradient(circle at top left, rgba(250, 204, 21, 0.22), transparent 55%),
@@ -895,10 +868,10 @@ input[type="number"] {
 
 .history-row-pr td {
     font-weight: 600;
-    color: #fef3c7; /* dourado bem claro */
+    color: #fef3c7;
 }
 
-/* tabela de Reps Máx por carga */
+/* tabela de reps máx */
 
 .history-pr-table-wrapper {
     margin-top: 10px;
@@ -927,7 +900,9 @@ input[type="number"] {
     font-size: 0.7rem;
 }
 
-/* página de métodos */
+/* ====================== */
+/*     PÁGINA MÉTODOS     */
+/* ====================== */
 
 .methods-page {
     background:
@@ -935,7 +910,7 @@ input[type="number"] {
             linear-gradient(150deg, #020617 0%, #000 70%);
     border-radius: var(--radius-lg);
     padding: 24px;
-    border: 1px solid rgba(15, 23, 42, 0.95);
+    border: 0.75px solid rgba(15, 23, 42, 0.95);
     box-shadow: var(--shadow-soft);
 }
 
@@ -948,7 +923,7 @@ input[type="number"] {
 
 .method-card {
     border-radius: var(--radius-md);
-    border: 1px solid rgba(15, 23, 42, 0.96);
+    border: 0.75px solid rgba(15, 23, 42, 0.96);
     background: radial-gradient(circle at top left, #020617, #000);
     padding: 14px;
 }
@@ -964,7 +939,9 @@ input[type="number"] {
     color: var(--text-secondary);
 }
 
-/* responsivo */
+/* ====================== */
+/*      RESPONSIVO        */
+/* ====================== */
 
 @media (max-width: 720px) {
     .homepage {
@@ -977,13 +954,10 @@ input[type="number"] {
     }
 }
 
-/* ========================= */
-/*     MOBILE — até 768px    */
-/* ========================= */
+/* mobile geral */
 
 @media (max-width: 768px) {
 
-    /* espaçamento geral */
     .app-shell {
         padding: 20px 12px 28px;
     }
@@ -998,7 +972,6 @@ input[type="number"] {
         border-radius: 20px;
     }
 
-    /* botões do topo */
     .template-button-next {
         width: 100%;
         justify-content: center;
@@ -1009,37 +982,40 @@ input[type="number"] {
         justify-content: center;
     }
 
-    /* cartões principais */
     .workout-session,
     .history-page,
     .methods-page {
         padding: 18px 14px 20px;
     }
 
-    /* CARD DO EXERCÍCIO */
     .session-exercise-item {
         grid-template-columns: auto minmax(0, 1fr);
-        grid-template-rows: auto auto auto auto;   /* organiza: título, peso, obs, tipo */
+        grid-template-rows: auto auto auto auto;
         padding: 12px;
         column-gap: 10px;
         row-gap: 10px;
         border-radius: 18px;
     }
 
-    /* agrupamento de peso e repetições — vira 1 coluna só */
+    /* checkbox maior no mobile */
+
+    .exercise-checkbox input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
+
     .exercise-input {
         grid-column: 1 / 3;
         grid-template-columns: minmax(0, 1fr);
         padding: 10px;
         border-radius: 14px;
-        background: rgba(15, 23, 42, 0.55); /* caixa mais leve no mobile */
+        background: rgba(15, 23, 42, 0.55);
     }
 
     .exercise-input > div {
         width: 100%;
     }
 
-    /* CAIXA DE OBSERVAÇÕES — versão mobile aprimorada */
     .exercise-note-wrapper {
         grid-column: 1 / 3;
         width: 100%;
@@ -1048,15 +1024,14 @@ input[type="number"] {
 
     .exercise-note-input {
         width: 100%;
-        min-height: 32px;      /* altura mais baixa */
-        padding: 6px 10px;     /* menos espaço interno */
+        min-height: 32px;
+        padding: 6px 10px;
         font-size: 0.9rem;
         background: rgba(30, 41, 59, 0.55);
         border: 1px solid rgba(56, 189, 248, 0.4);
         border-radius: 10px;
     }
 
-    /* sugestão de progressão */
     .exercise-suggestion {
         grid-column: 1 / 3;
         flex-direction: column;
@@ -1065,7 +1040,6 @@ input[type="number"] {
         gap: 6px;
     }
 
-    /* ações do cabeçalho */
     .header-actions {
         flex-direction: column;
         gap: 8px;
@@ -1078,23 +1052,11 @@ input[type="number"] {
         justify-content: center;
     }
 
-    /* histórico */
     .history-content {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    /* métodos */
     .methods-grid {
         grid-template-columns: minmax(0, 1fr);
-    }
-    /* checkbox maior no mobile */
-    .exercise-checkbox {
-        padding-top: 2px;           /* opcional, só para alinhar melhor */
-    }
-
-    .exercise-checkbox input[type="checkbox"] {
-        width: 22px;
-        height: 22px;
-        border-width: 2px;
     }
 }
