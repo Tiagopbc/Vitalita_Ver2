@@ -4,12 +4,13 @@ import HomePage from './HomePage';
 import WorkoutSession from './WorkoutSession';
 import HistoryPage from './HistoryPage';
 import MethodsPage from './MethodsPage';
+import LoginPage from './LoginPage';
+import { useAuth } from './AuthContext';
 import './style.css';
 
-// usuário fictício enquanto a autenticação não está ligada
-const MOCK_USER = { uid: 'Tiago' };
-
 function App() {
+    const { user, authLoading, logout } = useAuth();
+
     const [activeWorkoutId, setActiveWorkoutId] = useState(() => {
         const saved = localStorage.getItem('activeWorkoutId');
         return saved || null;
@@ -23,7 +24,6 @@ function App() {
     const [initialMethod, setInitialMethod] = useState('');
     const [methodsContext, setMethodsContext] = useState({ from: 'home' });
 
-    // estado para histórico
     const [historyTemplate, setHistoryTemplate] = useState(null);
     const [historyExercise, setHistoryExercise] = useState(null);
 
@@ -39,38 +39,32 @@ function App() {
         localStorage.removeItem('activeWorkoutId');
     }
 
-    // abre histórico, com ou sem exercício específico
     function openHistory(templateName = null, exerciseName = null) {
         setHistoryTemplate(templateName);
         setHistoryExercise(exerciseName);
         setCurrentView('history');
     }
 
-    // botão do cabeçalho
     function handleOpenHistoryFromHeader() {
         openHistory(null, null);
     }
 
-    // chamado a partir do treino
     function handleOpenHistoryFromWorkout(templateName, exerciseName) {
         openHistory(templateName, exerciseName);
     }
 
-    // abrir métodos pelo cabeçalho
     function handleOpenMethodsFromHeader() {
         setMethodsContext({ from: 'home' });
         setInitialMethod('');
         setCurrentView('methods');
     }
 
-    // abrir métodos a partir de um exercício do treino
     function handleOpenMethodsFromWorkout(methodName) {
         setMethodsContext({ from: 'workout' });
         setInitialMethod(methodName || '');
         setCurrentView('methods');
     }
 
-    // voltar da tela de métodos
     function handleBackFromMethods() {
         if (methodsContext.from === 'workout' && activeWorkoutId) {
             setCurrentView('workout');
@@ -79,13 +73,26 @@ function App() {
         }
     }
 
-    // voltar da tela de histórico
     function handleBackFromHistory() {
         if (activeWorkoutId) {
             setCurrentView('workout');
         } else {
             setCurrentView('home');
         }
+    }
+
+    if (authLoading) {
+        return (
+            <div className="app-shell">
+                <div className="app-inner">
+                    <p>Carregando autenticação...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return <LoginPage />;
     }
 
     let content;
@@ -112,7 +119,7 @@ function App() {
                 onBack={handleBackToHome}
                 onOpenMethod={handleOpenMethodsFromWorkout}
                 onOpenHistory={handleOpenHistoryFromWorkout}
-                user={MOCK_USER}
+                user={user}            // aqui entra o usuário real
             />
         );
     } else {
@@ -124,33 +131,43 @@ function App() {
     }
 
     return (
-        <div className="App">
-            <header className="app-header">
-                <h1>Vitalità</h1>
-                <p className="app-subtitle">
-                    Seu diário inteligente de treinos
-                </p>
+        <div className="app-shell">
+            <div className="app-inner">
+                <header className="app-header">
+                    <h1 className="app-logo-name">Vitalità</h1>
+                    <p className="app-header-subtitle">
+                        Seu diário inteligente de treinos
+                    </p>
 
-                <div className="header-actions">
-                    <button
-                        type="button"
-                        className="header-secondary-button"
-                        onClick={handleOpenMethodsFromHeader}
-                    >
-                        Métodos de treino
-                    </button>
+                    <div className="header-actions">
+                        <button
+                            type="button"
+                            className="header-secondary-button"
+                            onClick={handleOpenMethodsFromHeader}
+                        >
+                            Métodos de treino
+                        </button>
 
-                    <button
-                        type="button"
-                        className="header-history-button"
-                        onClick={handleOpenHistoryFromHeader}
-                    >
-                        Ver históricos
-                    </button>
-                </div>
-            </header>
+                        <button
+                            type="button"
+                            className="header-history-button"
+                            onClick={handleOpenHistoryFromHeader}
+                        >
+                            Ver históricos
+                        </button>
 
-            <main>{content}</main>
+                        <button
+                            type="button"
+                            className="header-secondary-button"
+                            onClick={logout}
+                        >
+                            Sair
+                        </button>
+                    </div>
+                </header>
+
+                <main>{content}</main>
+            </div>
         </div>
     );
 }

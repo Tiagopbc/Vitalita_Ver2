@@ -22,7 +22,7 @@ function WorkoutSession({
                             workoutId,
                             onBack,
                             onOpenMethod,
-                            onOpenHistory,   // nova prop
+                            onOpenHistory,
                             user
                         }) {
     const [template, setTemplate] = useState(null);
@@ -33,7 +33,7 @@ function WorkoutSession({
     const [notes, setNotes] = useState({});
     const [checkedExercises, setCheckedExercises] = useState({});
     const [progressionSuggestions, setProgressionSuggestions] = useState({});
-    const [personalRecords, setPersonalRecords] = useState({}); // PR por exercício
+    const [personalRecords, setPersonalRecords] = useState({});
 
     const [saving, setSaving] = useState(false);
 
@@ -46,13 +46,13 @@ function WorkoutSession({
         return n;
     };
 
-    // carregar template, últimos treinos, rascunho
+    // carregar template, últimos treinos e rascunho
     useEffect(() => {
         async function fetchWorkoutData() {
             setLoading(true);
 
             try {
-                // template
+                // template do treino
                 const templateRef = doc(db, 'workout_templates', workoutId);
                 const templateSnap = await getDoc(templateRef);
 
@@ -71,7 +71,7 @@ function WorkoutSession({
                 const newNotes = {};
                 const newChecked = {};
 
-                // rascunho
+                // rascunho salvo
                 const draftRef = doc(
                     db,
                     DRAFT_COLLECTION,
@@ -85,7 +85,7 @@ function WorkoutSession({
                 const draftNotes = draftData?.notes || {};
                 const draftChecked = draftData?.checkedExercises || {};
 
-                // últimas sessões
+                // últimas sessões desse usuário
                 const sessionsQuery = query(
                     collection(db, 'workout_sessions'),
                     orderBy('completedAt', 'desc'),
@@ -108,7 +108,7 @@ function WorkoutSession({
                     lastSessionResults = last.results || {};
                 }
 
-                // PRs históricos por exercício
+                // PR histórico por exercício
                 const records = {};
                 recentSessions.forEach((session) => {
                     const results = session.results || {};
@@ -132,7 +132,7 @@ function WorkoutSession({
                 });
                 setPersonalRecords(records);
 
-                // preencher valores iniciais
+                // preencher valores iniciais peso, reps, notas, checkbox
                 templateData.exercises.forEach((ex) => {
                     const lastForExercise = lastSessionResults[ex.name];
 
@@ -200,7 +200,7 @@ function WorkoutSession({
                         const minReps = last.minReps ?? prev.minReps ?? null;
                         const maxReps = last.maxReps ?? prev.maxReps ?? null;
 
-                        // sem faixa alvo, sugere aumento quando repete peso igual em dois treinos
+                        // sem faixa alvo, sugere subir quando repetir o mesmo peso em duas sessões
                         if (!maxReps) {
                             const lastW = last.weight;
                             const prevW = prev.weight;
@@ -306,7 +306,16 @@ function WorkoutSession({
         };
 
         persistDraft();
-    }, [weights, reps, notes, checkedExercises, template, workoutId, profileId, user.uid]);
+    }, [
+        weights,
+        reps,
+        notes,
+        checkedExercises,
+        template,
+        workoutId,
+        profileId,
+        user.uid
+    ]);
 
     // handlers simples
     const handleWeightChange = (exerciseName, value) => {
@@ -448,6 +457,15 @@ function WorkoutSession({
         );
     }
 
+    // ordena exercícios abertos primeiro e concluídos depois
+    const orderedExercises = [...template.exercises].sort((a, b) => {
+        const aChecked = !!checkedExercises[a.name];
+        const bChecked = !!checkedExercises[b.name];
+
+        if (aChecked === bChecked) return 0;
+        return aChecked ? 1 : -1;
+    });
+
     return (
         <div className="workout-session">
             <button
@@ -461,7 +479,7 @@ function WorkoutSession({
             <h2>{template.name}</h2>
 
             <div className="session-exercises">
-                {template.exercises.map((ex) => {
+                {orderedExercises.map((ex) => {
                     const completed = checkedExercises[ex.name];
                     const suggestion = progressionSuggestions[ex.name];
                     const suggestionWeight = suggestion?.weight;

@@ -158,6 +158,42 @@ body {
     opacity: 0.95;
 }
 
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0 18px;
+}
+
+.login-form label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    gap: 6px;
+}
+
+.login-form input {
+    border-radius: 10px;
+    border: 1px solid rgba(30, 64, 175, 0.6);
+    background: rgba(15, 23, 42, 0.95);
+    color: var(--text-primary);
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.login-form input:focus {
+    border-color: rgba(59, 130, 246, 0.95);
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.7);
+}
+
+.login-error {
+    font-size: 0.8rem;
+    color: #fecaca;
+}
+
+
 /* botão voltar, com destaque dentro do treino */
 
 .btn-back-primary {
@@ -176,7 +212,10 @@ body {
     border-color 0.12s ease, background 0.12s ease;
 }
 
-.workout-session .btn-back-primary {
+/* botão Voltar destacado em treino, histórico e métodos */
+.workout-session .btn-back-primary,
+.history-page .btn-back-primary,
+.methods-page .btn-back-primary {
     border-color: rgba(56, 189, 248, 0.8);
     background: radial-gradient(
             circle at top left,
