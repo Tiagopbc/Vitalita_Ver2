@@ -391,17 +391,20 @@ function WorkoutSession({
                 target: ex.target,
                 minReps: ex.minReps ?? null,
                 maxReps: ex.maxReps ?? null,
-                note: notes[ex.name] || '',
+                notes: notes[ex.name] || '',
                 method: ex.method || '',
                 completed: !!checkedExercises[ex.name]
             };
         });
 
         try {
-            await addDoc(collection(db, 'workout_sessions'), {
+            const sessionRef = await addDoc(collection(db, 'workout_sessions'), {
                 templateId: workoutId,
                 templateName: template.name,
                 userId: user.uid,
+                profileId,
+                userEmail: user.email || null,
+                userDisplayName: user.displayName || null,
                 createdAt: serverTimestamp(),
                 completedAt: serverTimestamp(),
                 results: sessionResults
@@ -411,7 +414,12 @@ function WorkoutSession({
             await setDoc(
                 userProfileRef,
                 {
-                    lastWorkoutId: workoutId
+                    email: user.email || null,
+                    displayName: user.displayName || null,
+                    lastWorkoutId: workoutId,
+                    lastWorkoutName: template.name,
+                    lastSessionId: sessionRef.id,
+                    lastCompletedAt: serverTimestamp()
                 },
                 { merge: true }
             );

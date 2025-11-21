@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState } from 'react';
 import HomePage from './HomePage';
 import WorkoutSession from './WorkoutSession';
@@ -81,6 +80,13 @@ function App() {
         }
     }
 
+    function handleLogout() {
+        localStorage.removeItem('activeWorkoutId');
+        setActiveWorkoutId(null);
+        setCurrentView('home');
+        logout();
+    }
+
     if (authLoading) {
         return (
             <div className="app-shell">
@@ -110,6 +116,7 @@ function App() {
                 onBack={handleBackFromHistory}
                 initialTemplate={historyTemplate}
                 initialExercise={historyExercise}
+                user={user}
             />
         );
     } else if (currentView === 'workout' && activeWorkoutId) {
@@ -119,13 +126,14 @@ function App() {
                 onBack={handleBackToHome}
                 onOpenMethod={handleOpenMethodsFromWorkout}
                 onOpenHistory={handleOpenHistoryFromWorkout}
-                user={user}            // aqui entra o usuário real
+                user={user} // aqui entra o usuário real
             />
         );
     } else {
         content = (
             <HomePage
                 onSelectWorkout={handleSelectWorkout}
+                user={user}
             />
         );
     }
@@ -159,7 +167,7 @@ function App() {
                         <button
                             type="button"
                             className="header-secondary-button"
-                            onClick={logout}
+                            onClick={handleLogout}
                         >
                             Sair
                         </button>

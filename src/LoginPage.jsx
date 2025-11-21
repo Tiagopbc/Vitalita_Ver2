@@ -1,116 +1,132 @@
 // src/LoginPage.jsx
 import React, { useState } from 'react';
-import { auth } from './firebaseConfig';
 import {
     signInWithEmailAndPassword,
-    createUserWithEmailAndPassword
+    createUserWithEmailAndPassword,
+    signInWithPopup,
 } from 'firebase/auth';
+import { auth, googleProvider } from './firebaseConfig';
+import './style.css';
 
 function LoginPage() {
-    const [mode, setMode] = useState('login'); // login ou register
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const [submitting, setSubmitting] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        setSubmitting(true);
-        setErrorMessage('');
+    async function handleSubmit(e) {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
 
         try {
-            if (mode === 'login') {
-                await signInWithEmailAndPassword(auth, email, password);
+            const trimmedEmail = email.trim();
+
+            if (isRegistering) {
+                await createUserWithEmailAndPassword(auth, trimmedEmail, password);
             } else {
-                await createUserWithEmailAndPassword(auth, email, password);
+                await signInWithEmailAndPassword(auth, trimmedEmail, password);
             }
-            // o AuthContext pega a mudança e o App troca para a Home
-        } catch (error) {
-            console.error(error);
-            let msg = 'Erro ao autenticar';
-
-            if (error.code === 'auth/user-not-found') {
-                msg = 'Usuário não encontrado';
-            } else if (error.code === 'auth/wrong-password') {
-                msg = 'Senha incorreta';
-            } else if (error.code === 'auth/email-already-in-use') {
-                msg = 'Este e mail já está em uso';
-            }
-
-            setErrorMessage(msg);
+        } catch (err) {
+            console.error(err);
+            setError(
+                'Não foi possível autenticar. Verifique os dados e tente novamente.'
+            );
         } finally {
-            setSubmitting(false);
+            setLoading(false);
         }
-    };
+    }
+
+    async function handleGoogleSignIn() {
+        setError('');
+        setLoading(true);
+
+        try {
+            await signInWithPopup(auth, googleProvider);
+        } catch (err) {
+            console.error(err);
+            setError('Não foi possível entrar com o Google. Tente novamente.');
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
-        <div className="app-shell">
-            <div className="app-inner">
-                <header className="app-header">
-                    <h1 className="app-logo-name">Vitalità</h1>
-                    <p className="app-header-subtitle">
-                        Seu diário inteligente de treinos
-                    </p>
-                </header>
+        <div className="login-page">
+            <div className="login-card">
+                <h2 className="login-title">Vitalità</h2>
+                <form className="login-form" onSubmit={handleSubmit}>
+                    <label className="login-label">
+                        E mail
+                        <input
+                            type="email"
+                            className="login-input"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </label>
 
-                <main className="login-page">
-                    <div className="login-card">
-                        <h2>{mode === 'login' ? 'Entrar' : 'Criar conta'}</h2>
+                    <label className="login-label">
+                        Senha
+                        <input
+                            type="password"
+                            className="login-input"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </label>
 
-                        <form onSubmit={handleSubmit} className="login-form">
-                            <label>
-                                E mail
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </label>
+                    {error && (
+                        <p className="login-error">
+                            {error}
+                        </p>
+                    )}
 
-                            <label>
-                                Senha
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                            </label>
+                    <button
+                        type="submit"
+                        className="header-history-button"
+                        disabled={loading}
+                    >
+                        {loading
+                            ? 'Enviando...'
+                            : isRegistering
+                                ? 'Criar conta'
+                                : 'Entrar'}
+                    </button>
+                </form>
 
-                            {errorMessage && (
-                                <p className="login-error">
-                                    {errorMessage}
-                                </p>
-                            )}
+                <div className="login-divider">
+                    <span>ou</span>
+                </div>
 
-                            <button
-                                type="submit"
-                                className="header-history-button"
-                                disabled={submitting}
-                            >
-                                {submitting
-                                    ? 'Enviando...'
-                                    : mode === 'login'
-                                        ? 'Entrar'
-                                        : 'Criar conta'}
-                            </button>
-                        </form>
+                <div className="login-actions">
+                    <button
+                        type="button"
+                        className="google-image-button"
+                        onClick={handleGoogleSignIn}
+                        disabled={loading}
+                        aria-label="Entrar com Google"
+                    >
+                        <img
+                            src="/google-logo.svg"
+                            alt="Entrar com Google"
+                        />
+                    </button>
 
-                        <button
-                            type="button"
-                            className="header-secondary-button login-toggle"
-                            onClick={() =>
-                                setMode((current) => (current === 'login' ? 'register' : 'login'))
-                            }
-                        >
-                            {mode === 'login'
-                                ? 'Criar uma nova conta'
-                                : 'Já tenho conta, entrar'}
-                        </button>
-                    </div>
-                </main>
+                    <button
+                        type="button"
+                        className="login-toggle-button"
+                        onClick={() => setIsRegistering((prev) => !prev)}
+                        disabled={loading}
+                    >
+                        {isRegistering
+                            ? 'Já tenho conta com e mail'
+                            : 'Quero criar uma conta com e mail'}
+                    </button>
+                </div>
             </div>
         </div>
     );
