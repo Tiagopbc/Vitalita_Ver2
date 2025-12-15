@@ -140,8 +140,8 @@ export default function RegisterEmail({
     const showPasswordUX = isStep1 && (password.length > 0 || confirmPassword.length > 0);
 
     return (
-        <div className="app-shell">
-            <div className="app-inner">
+        <div className="app-shell register-shell">
+            <div className="app-inner register-inner">
                 <div className="app-header">
                     <h1 className="app-logo-name">Vitalità</h1>
                     <p className="app-header-subtitle">Crie sua conta</p>

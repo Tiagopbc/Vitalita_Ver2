@@ -83,6 +83,22 @@ Essa foi uma das coisas que mais me surpreendeu quando testei. A sensação é d
 
 ## 🛠 Como rodar o projeto na minha máquina
 
+### 1) Clonar ou atualizar o repositório
+
+- **Se ainda não tiver o código localmente**, faça o clone em uma pasta da sua preferência:
+  ```bash
+  git clone https://github.com/Tiagopbc/Vitalita_Ver2.git
+  cd Vitalita_Ver2
+  ```
+
+- **Se já tiver o projeto clonado**, entre na pasta e traga as atualizações mais recentes:
+  ```bash
+  cd /caminho/para/Vitalita_Ver2
+  git pull
+  ```
+
+### 2) Instalar dependências e rodar o servidor de desenvolvimento
+
 ```bash
 
 npm install
