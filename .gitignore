@@ -1,4 +1,4 @@
-# Logs
+# Logs e Debug
 logs
 *.log
 npm-debug.log*
@@ -6,13 +6,20 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+firebase-debug.log*
 
+# Dependências
 node_modules
+.pnp
+.pnp.js
+
+# Build e Distribuição
 dist
 dist-ssr
+build
 *.local
 
-# Editor directories and files
+# Editor e Sistema Operacional
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +29,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variáveis de Ambiente (Segurança)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Arquivos de Segurança (CRÍTICO - NUNCA REMOVA ESTAS LINHAS)
+serviceAccountKey.json
+secure/serviceAccountKey.json
+*.pem
+
+# Firebase Cache
+.firebase/
+
+# Testes
+coverage/

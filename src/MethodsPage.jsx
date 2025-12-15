@@ -1,253 +1,255 @@
 // src/MethodsPage.jsx
 
-import React, { useMemo } from 'react';
+import React from 'react';
 
-const METHODS = [
-    {
-        id: 'drop-set',
-        name: 'Drop-set',
-        aliases: ['Drop-set', 'Drop Set', 'Drop-sete'],
-        short: 'Ao terminar a série, reduza a carga e continue sem descanso.',
-        how: [
-            'Escolha uma carga que leve perto da falha muscular.',
-            'Ao terminar as repetições, reduza a carga em torno de 20 a 30 por cento e continue.',
-            'Repita esse processo duas ou três vezes na mesma série, se fizer sentido para o treino.'
-        ],
-        benefits: [
-            'Aumenta o tempo sob tensão muscular.',
-            'Ótimo para finalizar o músculo no fim do treino.',
-            'Funciona muito bem em máquinas e halteres.'
-        ],
-        cautions: [
-            'Use com moderação, pois a fadiga acumulada é alta.',
-            'Evite aplicar em todos os exercícios do treino.'
-        ]
-    },
-    {
-        id: 'piramide-crescente',
-        name: 'Pirâmide crescente',
-        aliases: ['Pirâmide crescente', 'Pirâmide crescente '],
-        short: 'Comece mais leve e aumente a carga enquanto reduz o número de repetições.',
-        how: [
-            'Inicie com uma série usando carga mais leve e repetições mais altas.',
-            'Em cada série seguinte, aumente a carga e reduza um pouco as repetições.',
-            'Exemplo: 15 repetições, depois 12, depois 10, depois 8.'
-        ],
-        benefits: [
-            'Aquece bem a musculatura ao longo das primeiras séries.',
-            'Ajuda a encontrar a carga ideal à medida que o exercício progride.',
-            'Boa opção para exercícios principais, como supino ou agachamento guiado.'
-        ],
-        cautions: [
-            'Evite começar leve demais para não gastar energia à toa.',
-            'Mantenha a técnica estável mesmo quando a carga aumentar.'
-        ]
-    },
-    {
-        id: 'piramide-decrescente',
-        name: 'Pirâmide decrescente',
-        aliases: ['Pirâmide decrescente'],
-        short: 'Comece pesado com menos repetições e, depois, reduza a carga aumentando as repetições.',
-        how: [
-            'Inicie com uma série usando carga mais alta e poucas repetições.',
-            'Em cada série seguinte, reduza um pouco a carga e aumente as repetições.',
-            'Exemplo: 8 repetições, depois 10, depois 12, depois 15.'
-        ],
-        benefits: [
-            'Permite usar mais força logo no início, quando há menos fadiga.',
-            'Mantém o músculo trabalhando em diferentes faixas de repetições.'
-        ],
-        cautions: [
-            'Capriche no aquecimento antes da primeira série pesada.',
-            'Evite exagerar na carga para não comprometer a técnica.'
-        ]
-    },
-    {
-        id: 'cluster-set',
-        name: 'Cluster set',
-        aliases: ['Cluster set', 'Cluster Set'],
-        short: 'Divida uma série longa em mini blocos com pausas bem curtas.',
-        how: [
-            'Escolha uma carga relativamente alta.',
-            'Faça um pequeno bloco de repetições, por exemplo 4 ou 5.',
-            'Descanse de 10 a 20 segundos e repita o bloco.',
-            'Some todos os blocos, que contam como uma única série estendida.'
-        ],
-        benefits: [
-            'Permite trabalhar com cargas altas por mais tempo.',
-            'Ajuda a manter a técnica graças aos minidescansos.',
-            'Boa opção para ganhos de força e hipertrofia.'
-        ],
-        cautions: [
-            'Controle bem o tempo das pausas, senão o método perde o efeito.',
-            'Evite usar em todos os exercícios para não tornar o treino excessivamente longo.'
-        ]
-    },
-    {
-        id: 'bi-set',
-        name: 'Bi-set',
-        aliases: ['Bi-set', 'Bi set', 'Bi-sete'],
-        short: 'Realize dois exercícios seguidos para o mesmo grupo muscular, sem descanso entre eles.',
-        how: [
-            'Escolha dois exercícios que combinem bem para o mesmo músculo.',
-            'Execute a série completa do primeiro exercício.',
-            'Sem descansar, passe imediatamente para o segundo.',
-            'Descanse apenas depois de completar os dois exercícios.'
-        ],
-        benefits: [
-            'Aumenta bastante a intensidade do treino.',
-            'Ajuda a economizar tempo, já que concentra mais trabalho em menos séries.',
-            'Boa estratégia para músculos que respondem bem a maior volume de treino.'
-        ],
-        cautions: [
-            'Reduza um pouco a carga em relação ao que usaria em séries isoladas.',
-            'Controle a respiração, pois o esforço contínuo é maior.'
-        ]
-    },
-    {
-        id: 'pico-contracao',
-        name: 'Pico de contração',
-        aliases: ['Pico de contração', 'Pico de contracao'],
-        short: 'Segure um ou dois segundos no ponto de máxima contração do movimento.',
-        how: [
-            'Execute o movimento de forma controlada até o ponto de maior contração.',
-            'Segure a posição por um ou dois segundos.',
-            'Retorne controlando a fase excêntrica, sem deixar a carga “cair”.'
-        ],
-        benefits: [
-            'Melhora a conexão mente-músculo.',
-            'Mantém o músculo sob tensão por mais tempo.',
-            'Funciona muito bem para panturrilhas, bíceps e ombros.'
-        ],
-        cautions: [
-            'Evite travar completamente as articulações.',
-            'Se a carga estiver alta demais, será difícil segurar o pico com boa técnica.'
-        ]
-    },
-    {
-        id: 'falha-total',
-        name: 'Falha total',
-        aliases: ['Falha total', 'Falta total'],
-        short: 'Leve a série até o ponto em que não é possível completar outra repetição com boa técnica.',
-        how: [
-            'Escolha uma carga adequada para a faixa de repetições planejada.',
-            'Execute o movimento até não conseguir realizar outra repetição com técnica segura.',
-            'Ao atingir esse ponto, encerre a série de forma controlada.'
-        ],
-        benefits: [
-            'Pode gerar um estímulo forte para o músculo quando aplicado com critério.',
-            'Geralmente funciona melhor na última série de um exercício.'
-        ],
-        cautions: [
-            'Use com moderação, pois o desgaste é maior.',
-            'Evite aplicar falha total em exercícios extremamente pesados ou complexos.'
-        ]
-    },
-    {
-        id: 'convencional',
-        name: 'Convencional',
-        aliases: ['Convencional'],
-        short: 'Série tradicional com a mesma carga, repetições contínuas e descanso normal entre as séries.',
-        how: [
-            'Defina a carga de acordo com a faixa de repetições planejada.',
-            'Execute todas as repetições com movimento controlado.',
-            'Descanse o tempo combinado e repita o processo nas próximas séries.'
-        ],
-        benefits: [
-            'Serve como base para qualquer treino bem estruturado.',
-            'Facilita o controle de volume e de progressão de carga.',
-            'Costuma ser menos estressante para o sistema nervoso do que métodos avançados.'
-        ],
-        cautions: [
-            'Mantenha a técnica sempre em primeiro lugar, mesmo em séries simples.',
-            'Progrida a carga aos poucos, sem pressa e sem sacrificar a execução.'
-        ]
-    }
-];
-
-function normalize(text) {
-    return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
-
-function MethodsPage({ onBack, initialMethod }) {
-    const highlightedId = useMemo(() => {
-        if (!initialMethod) {
-            return null;
-        }
-
-        const normalized = normalize(initialMethod);
-
-        const found = METHODS.find((m) =>
-            [m.name, ...(m.aliases || [])].some(
-                (alias) => normalize(alias) === normalized
-            )
-        );
-
-        return found ? found.id : null;
-    }, [initialMethod]);
+function MethodsPage({ onBack }) {
+    const methods = [
+        {
+            id: 'drop-set',
+            name: 'Drop-set',
+            description:
+                'Você continua o exercício reduzindo a carga assim que chegar perto da falha, sem descansar entre as reduções de peso.',
+            howTo: [
+                'Escolha um exercício com máquina ou halteres, de preferência.',
+                'Use uma carga com a qual você chegue muito perto da falha na faixa de repetições planejada.',
+                'Ao chegar na falha ou quase falha, reduza rapidamente a carga e continue o exercício.',
+                'Repita a redução de carga uma ou duas vezes, mantendo a boa técnica.',
+            ],
+            whenToUse: [
+                'Para aumentar o estresse metabólico no final da sessão.',
+                'Quando você tem pouco tempo e quer intensificar o treino.',
+                'Em exercícios isoladores, como elevações laterais ou crucifixo.',
+            ],
+            caution: [
+                'Evite usar drop-set em todos os exercícios do treino.',
+                'Não use rotineiramente com cargas muito altas em exercícios compostos, como agachamento livre.',
+            ],
+        },
+        {
+            id: 'piramide-crescente',
+            name: 'Pirâmide Crescente',
+            description:
+                'A cada série você aumenta a carga e reduz um pouco o número de repetições, dentro de uma faixa planejada.',
+            howTo: [
+                'Defina uma faixa de repetições, por exemplo de 12 até 6 repetições.',
+                'Comece com carga mais leve e repetições mais altas.',
+                'A cada série, aumente o peso e reduza um pouco as repetições.',
+                'Mantenha a técnica consistente durante todas as séries.',
+            ],
+            whenToUse: [
+                'Boa estratégia para “entrar no exercício” com mais controle.',
+                'Útil em exercícios base, como supino ou leg press.',
+                'Ajuda a acumular volume em repetições moderadas e, no fim, buscar cargas mais altas.',
+            ],
+            caution: [
+                'Planeje o peso das séries para não travar cedo demais.',
+                'Não exagere no aumento de carga de uma série para outra.',
+            ],
+        },
+        {
+            id: 'piramide-decrescente',
+            name: 'Pirâmide Decrescente',
+            description:
+                'Você começa com a carga mais alta e repetições mais baixas e, nas séries seguintes, diminui o peso e aumenta o número de repetições.',
+            howTo: [
+                'Aqueça bem antes da série mais pesada.',
+                'Comece com a série de menor número de repetições usando a maior carga planejada.',
+                'Nas séries seguintes, reduza um pouco a carga e aumente as repetições.',
+                'Mantenha a execução controlada, mesmo com a fadiga se acumulando.',
+            ],
+            whenToUse: [
+                'Quando você está descansado e quer priorizar a série mais pesada logo no início.',
+                'Para exercícios principais, como agachamento, supino ou remada.',
+            ],
+            caution: [
+                'Exige aquecimento muito bem feito para evitar lesões.',
+                'Não é a melhor escolha em dias de fadiga elevada.',
+            ],
+        },
+        {
+            id: 'cluster',
+            name: 'Cluster set',
+            description:
+                'Série em que você faz pequenas “pausas rápidas” dentro da mesma série para conseguir manter a carga ou a qualidade das repetições.',
+            howTo: [
+                'Escolha uma carga desafiadora, mas que você consiga repetir algumas vezes com boa técnica.',
+                'Faça um pequeno bloco de repetições, por exemplo 3 a 5 repetições.',
+                'Descanse de 10 a 20 segundos ainda na estação, sem sair do lugar.',
+                'Repita o bloco de repetições e pausa até completar o volume planejado.',
+            ],
+            whenToUse: [
+                'Boa opção para buscar força com segurança, pois as micropausas ajudam a manter a técnica.',
+                'Útil em exercícios como supino, remada ou agachamento na máquina.',
+            ],
+            caution: [
+                'Controle com cuidado o tempo das pausas, para não descaracterizar o método.',
+                'Não use em excesso, pois ainda gera bastante fadiga.',
+            ],
+        },
+        {
+            id: 'bi-set',
+            name: 'Bi-set',
+            description:
+                'Você executa dois exercícios para o mesmo grupo muscular, um logo em seguida do outro, com descanso só depois de completar os dois.',
+            howTo: [
+                'Escolha dois exercícios que trabalhem a mesma musculatura principal.',
+                'Faça a série do primeiro exercício até a faixa planejada de repetições.',
+                'Logo em seguida, sem descanso, faça a série do segundo exercício.',
+                'Descanse apenas depois de completar os dois.',
+            ],
+            whenToUse: [
+                'Quando você quer gerar mais densidade de treino para um grupo muscular específico.',
+                'Bom em treinos de braços, ombros ou peito.',
+            ],
+            caution: [
+                'A fadiga aumenta bastante, então ajuste a carga para não perder a técnica.',
+                'Evite combinar dois exercícios muito pesados ao mesmo tempo.',
+            ],
+        },
+        {
+            id: 'pico',
+            name: 'Pico de contração',
+            description:
+                'Você segura um ou dois segundos no ponto de máxima contração do movimento para melhorar controle e conexão mente músculo.',
+            howTo: [
+                'Faça o movimento de forma controlada até o ponto de maior contração.',
+                'Segure a posição por um ou dois segundos, sem relaxar a musculatura.',
+                'Retorne controlando a fase excêntrica, sem deixar a carga cair de uma vez.',
+            ],
+            whenToUse: [
+                'Para melhorar a percepção do músculo que está sendo trabalhado.',
+                'Muito útil em exercícios de panturrilhas, bíceps, tríceps e ombros.',
+            ],
+            caution: [
+                'Evite travar completamente as articulações na posição de pico.',
+                'Se a carga estiver alta demais, será difícil manter o tempo de contração com boa técnica.',
+            ],
+        },
+        {
+            id: 'falha-total',
+            name: 'Falha total',
+            description:
+                'Você leva a série até o ponto em que não consegue mais completar outra repetição com boa técnica.',
+            howTo: [
+                'Escolha um exercício seguro, de preferência em máquina ou com supervisão.',
+                'Use uma carga com a qual você chegue perto da falha na faixa de repetições planejada.',
+                'Continue a série até perceber que não consegue mais completar outra repetição sem “roubar”.',
+            ],
+            whenToUse: [
+                'Em fases específicas do treino, para aumentar o estímulo de força ou hipertrofia.',
+                'Em um ou outro exercício do treino, geralmente na última série.',
+            ],
+            caution: [
+                'Não é necessário, nem recomendável, levar todas as séries até a falha total.',
+                'Exige recuperação adequada, então use com moderação na semana.',
+            ],
+        },
+        {
+            id: 'negativa',
+            name: 'Negativa',
+            description:
+                'Você dá ênfase na fase em que o músculo “segura” a carga na descida, ou seja, na fase excêntrica do movimento.',
+            howTo: [
+                'Use uma carga que permita controlar bem a descida.',
+                'Conte mentalmente de dois a quatro segundos enquanto abaixa a carga.',
+                'Suba de forma mais natural, sem acelerar demais, e repita.',
+            ],
+            whenToUse: [
+                'Para melhorar o controle do movimento e aumentar o tempo sob tensão.',
+                'Boa estratégia em exercícios de máquina, como cadeira extensora ou flexora.',
+            ],
+            caution: [
+                'Gera bastante dano muscular, portanto não use em excesso.',
+                'Evite combinar negativas com muitos outros métodos intensos no mesmo treino.',
+            ],
+        },
+        {
+            id: 'cardio-140',
+            name: 'Cardio 140 bpm',
+            description:
+                'Manter a frequência cardíaca em torno de 140 batimentos por minuto é uma forma prática de controlar a intensidade do cardio.',
+            howTo: [
+                'Use esteira, bicicleta ou elíptico, de preferência com monitor de frequência cardíaca.',
+                'Ajuste velocidade e inclinação até ficar próximo de 140 bpm, sem ultrapassar demais esse valor.',
+                'Mantenha esse ritmo por 15 a 30 minutos, respeitando seu nível de condicionamento.',
+            ],
+            whenToUse: [
+                'Para melhorar o condicionamento cardiorrespiratório.',
+                'Como complemento ao treino de musculação, em dias alternados ou após o treino.',
+                'Quando o objetivo inclui controle de peso e saúde cardiovascular.',
+            ],
+            caution: [
+                'Se você tiver qualquer problema cardíaco, siga sempre orientação profissional.',
+                'Não aumente demais a intensidade ao ponto de não conseguir falar frases curtas.',
+            ],
+        },
+    ];
 
     return (
         <div className="methods-page">
-            <button
-                type="button"
-                className="btn-back-primary"
-                onClick={onBack}
-            >
-                Voltar
-            </button>
+            {onBack && (
+                <button
+                    type="button"
+                    className="btn-back-primary"
+                    onClick={onBack}
+                >
+                    Voltar
+                </button>
+            )}
 
-            <h2>Métodos de treino</h2>
+            <h2>Métodos avançados de treino</h2>
 
-            <p className="methods-intro">
-                Abaixo estão resumidos os principais métodos que aparecem nos treinos.
-                Sempre que surgir “Drop-set”, “Pirâmide”, “Cluster” ou outro método,
-                consulte esta tela para lembrar rapidamente como aplicar cada um deles.
+            <p className="history-intro">
+                Aqui você encontra uma explicação prática dos principais métodos usados nos seus treinos,
+                com foco em quando usar cada um, como aplicar e quais cuidados tomar.
             </p>
 
             <div className="methods-grid">
-                {METHODS.map((method) => {
-                    const isHighlighted = method.id === highlightedId;
+                {methods.map((method) => (
+                    <article key={method.id} className="method-card">
+                        <h3>{method.name}</h3>
+                        <p>{method.description}</p>
 
-                    return (
-                        <article
-                            key={method.id}
-                            className={
-                                'method-card' +
-                                (isHighlighted ? ' method-card-highlight' : '')
-                            }
-                        >
-                            <h3 className="method-title">{method.name}</h3>
-                            <p className="method-short">{method.short}</p>
-
-                            <div className="method-section">
-                                <h4>Como executar</h4>
-                                <ul>
-                                    {method.how.map((item) => (
-                                        <li key={item}>{item}</li>
+                        {method.howTo && method.howTo.length > 0 && (
+                            <>
+                                <h4 style={{ marginTop: 10, marginBottom: 4, fontSize: '0.8rem' }}>
+                                    Como aplicar
+                                </h4>
+                                <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    {method.howTo.map((item, index) => (
+                                        <li key={`${method.id}-how-${index}`}>{item}</li>
                                     ))}
                                 </ul>
-                            </div>
+                            </>
+                        )}
 
-                            <div className="method-section">
-                                <h4>Quando usar</h4>
-                                <ul>
-                                    {method.benefits.map((item) => (
-                                        <li key={item}>{item}</li>
+                        {method.whenToUse && method.whenToUse.length > 0 && (
+                            <>
+                                <h4 style={{ marginTop: 10, marginBottom: 4, fontSize: '0.8rem' }}>
+                                    Quando faz sentido usar
+                                </h4>
+                                <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    {method.whenToUse.map((item, index) => (
+                                        <li key={`${method.id}-when-${index}`}>{item}</li>
                                     ))}
                                 </ul>
-                            </div>
+                            </>
+                        )}
 
-                            <div className="method-section">
-                                <h4>Cuidados</h4>
-                                <ul>
-                                    {method.cautions.map((item) => (
-                                        <li key={item}>{item}</li>
+                        {method.caution && method.caution.length > 0 && (
+                            <>
+                                <h4 style={{ marginTop: 10, marginBottom: 4, fontSize: '0.8rem' }}>
+                                    Cuidados
+                                </h4>
+                                <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    {method.caution.map((item, index) => (
+                                        <li key={`${method.id}-caution-${index}`}>{item}</li>
                                     ))}
                                 </ul>
-                            </div>
-                        </article>
-                    );
-                })}
+                            </>
+                        )}
+                    </article>
+                ))}
             </div>
         </div>
     );

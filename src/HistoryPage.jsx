@@ -1,3 +1,5 @@
+// src/HistoryPage.jsx
+
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from './firebaseConfig';
 import {
@@ -10,7 +12,7 @@ import {
 
 function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
     const [templates, setTemplates] = useState([]);
-    const [selectedTemplate, setSelectedTemplate] = useState('');
+    const [selectedTemplateId, setSelectedTemplateId] = useState('');
     const [exerciseOptions, setExerciseOptions] = useState([]);
     const [selectedExercise, setSelectedExercise] = useState('');
     const [historyRows, setHistoryRows] = useState([]);
@@ -21,62 +23,95 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
 
     const hasAppliedInitialFilters = useRef(false);
 
-    // carrega templates de treino
+    // carrega templates de treino das coleções base e do usuário
     useEffect(() => {
         async function fetchTemplates() {
+            if (!user) {
+                setTemplates([]);
+                setSelectedTemplateId('');
+                setLoadingTemplates(false);
+                return;
+            }
+
             setLoadingTemplates(true);
             setError('');
-            try {
-                const templatesRef = collection(db, 'workout_templates');
-                const templatesQuery = query(templatesRef, orderBy('name'));
-                const snap = await getDocs(templatesQuery);
 
-                const list = snap.docs.map((docSnap) => {
+            try {
+                const list = [];
+
+                // templates base
+                const baseRef = collection(db, 'workout_templates');
+                const baseQuery = query(baseRef, orderBy('name'));
+                const baseSnap = await getDocs(baseQuery);
+
+                baseSnap.forEach((docSnap) => {
                     const data = docSnap.data();
-                    return {
+                    list.push({
                         id: docSnap.id,
                         name: data.name,
                         exercises: data.exercises || [],
-                    };
+                        source: 'default',
+                    });
                 });
+
+                // templates personalizados do usuário
+                const userRef = collection(db, 'user_workout_templates');
+                const userQuery = query(userRef, where('userId', '==', user.uid));
+                const userSnap = await getDocs(userQuery);
+
+                userSnap.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    list.push({
+                        id: docSnap.id,
+                        name: data.name,
+                        exercises: data.exercises || [],
+                        source: 'user',
+                    });
+                });
+
+                // ordena por nome
+                list.sort((a, b) => a.name.localeCompare(b.name));
 
                 setTemplates(list);
 
                 if (list.length > 0) {
-                    let defaultTemplateName = list[0].name;
+                    let defaultTemplate = list[0];
 
+                    // tenta respeitar o initialTemplate, se existir
                     if (initialTemplate) {
                         const found = list.find(
                             (t) => t.name === initialTemplate,
                         );
                         if (found) {
-                            defaultTemplateName = found.name;
+                            defaultTemplate = found;
                         }
                     }
 
-                    setSelectedTemplate(defaultTemplateName);
+                    setSelectedTemplateId(defaultTemplate.id);
+                } else {
+                    setSelectedTemplateId('');
                 }
             } catch (err) {
                 console.error('Erro ao carregar templates do histórico', err);
-                setError('Não foi possível carregar os treinos');
+                setError('Não foi possível carregar os treinos.');
             } finally {
                 setLoadingTemplates(false);
             }
         }
 
         fetchTemplates();
-    }, [initialTemplate]);
+    }, [initialTemplate, user?.uid]);
 
     // atualiza lista de exercícios conforme template escolhido
     useEffect(() => {
-        if (!selectedTemplate) {
+        if (!selectedTemplateId) {
             setExerciseOptions([]);
             setSelectedExercise('');
             return;
         }
 
         const template = templates.find(
-            (t) => t.name === selectedTemplate,
+            (t) => t.id === selectedTemplateId,
         );
 
         const options =
@@ -104,19 +139,30 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
         } else if (!options.includes(selectedExercise)) {
             setSelectedExercise(options[0]);
         }
-    }, [selectedTemplate, templates, initialExercise, selectedExercise]);
+    }, [selectedTemplateId, templates, initialExercise, selectedExercise]);
 
     // carrega histórico quando template e exercício forem definidos
     useEffect(() => {
         async function fetchHistory() {
-            if (!selectedTemplate || !selectedExercise) {
+            if (!selectedTemplateId || !selectedExercise) {
                 setHistoryRows([]);
                 setPrRows([]);
                 return;
             }
 
             if (!user) {
-                // segurança extra, mas na prática App só mostra HistoryPage se houver user
+                setHistoryRows([]);
+                setPrRows([]);
+                return;
+            }
+
+            const template = templates.find(
+                (t) => t.id === selectedTemplateId,
+            );
+
+            if (!template) {
+                setHistoryRows([]);
+                setPrRows([]);
                 return;
             }
 
@@ -126,7 +172,7 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
                 const sessionsRef = collection(db, 'workout_sessions');
 
                 const constraints = [
-                    where('templateName', '==', selectedTemplate),
+                    where('templateId', '==', template.id),
                     where('userId', '==', user.uid),
                     orderBy('completedAt', 'desc'),
                 ];
@@ -147,7 +193,6 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
                         return;
                     }
 
-                    // monta a data a partir do completedAt
                     const completedAt = data.completedAt;
                     let date = null;
                     if (completedAt && typeof completedAt.toDate === 'function') {
@@ -191,14 +236,14 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
                 setPrRows(prList);
             } catch (err) {
                 console.error('Erro ao carregar histórico', err);
-                setError('Não foi possível carregar o histórico');
+                setError('Não foi possível carregar o histórico.');
             } finally {
                 setLoadingHistory(false);
             }
         }
 
         fetchHistory();
-    }, [selectedTemplate, selectedExercise, user]);
+    }, [selectedTemplateId, selectedExercise, user?.uid, templates]);
 
     function formatDate(date) {
         if (!date) {
@@ -215,50 +260,59 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
         }
     }
 
+    const selectedTemplate = templates.find(
+        (t) => t.id === selectedTemplateId,
+    );
+
     return (
         <div className="history-page">
-            <div className="history-header">
-                <button
-                    type="button"
-                    className="back-button"
-                    onClick={onBack}
-                >
-                    Voltar
-                </button>
-                <h2>Histórico de treinos</h2>
-            </div>
+            <button
+                type="button"
+                className="btn-back-primary"
+                onClick={onBack}
+            >
+                Voltar
+            </button>
+
+            <h2>Histórico de treinos</h2>
+
+            {selectedTemplate && (
+                <p className="history-intro">
+                    Rotina selecionada, {selectedTemplate.name}.
+                </p>
+            )}
 
             {error && (
-                <div className="error-message">
+                <p className="login-error" style={{ marginTop: 8 }}>
                     {error}
-                </div>
+                </p>
             )}
 
             {loadingTemplates ? (
-                <p>Carregando treinos...</p>
+                <p style={{ marginTop: 12 }}>Carregando treinos...</p>
             ) : (
                 <>
-                    <div className="history-filters">
-                        <div className="history-filter">
+                    <div className="history-filters" style={{ marginTop: 16 }}>
+                        <div className="history-filter-group">
                             <label htmlFor="templateSelect">
                                 Rotina
                             </label>
                             <select
                                 id="templateSelect"
-                                value={selectedTemplate || ''}
+                                value={selectedTemplateId || ''}
                                 onChange={(e) =>
-                                    setSelectedTemplate(e.target.value)
+                                    setSelectedTemplateId(e.target.value)
                                 }
                             >
                                 {templates.map((t) => (
-                                    <option key={t.id} value={t.name}>
+                                    <option key={t.id} value={t.id}>
                                         {t.name}
                                     </option>
                                 ))}
                             </select>
                         </div>
 
-                        <div className="history-filter">
+                        <div className="history-filter-group">
                             <label htmlFor="exerciseSelect">
                                 Exercício
                             </label>
@@ -279,11 +333,21 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
                     </div>
 
                     {loadingHistory ? (
-                        <p>Carregando histórico...</p>
+                        <p style={{ marginTop: 16 }}>
+                            Carregando histórico...
+                        </p>
                     ) : (
-                        <>
-                            <section className="history-section">
-                                <h3>Histórico detalhado</h3>
+                        <div className="history-content">
+                            <section className="history-card">
+                                <div className="history-card-header">
+                                    <h3>Histórico detalhado</h3>
+                                    {selectedExercise && (
+                                        <span>
+                                            Exercício, {selectedExercise}.
+                                        </span>
+                                    )}
+                                </div>
+
                                 {historyRows.length === 0 ? (
                                     <p>
                                         Nenhum registro encontrado para esta
@@ -309,14 +373,12 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
                                                         )}
                                                     </td>
                                                     <td>
-                                                        {row.weight !=
-                                                        null
+                                                        {row.weight != null
                                                             ? `${row.weight} kg`
                                                             : ''}
                                                     </td>
                                                     <td>
-                                                        {row.reps !=
-                                                        null
+                                                        {row.reps != null
                                                             ? row.reps
                                                             : ''}
                                                     </td>
@@ -331,16 +393,19 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
                                 )}
                             </section>
 
-                            <section className="history-section">
-                                <h3>PRs por carga</h3>
+                            <section className="history-card">
+                                <div className="history-card-header">
+                                    <h3>PRs por carga</h3>
+                                </div>
+
                                 {prRows.length === 0 ? (
                                     <p>
                                         Ainda não há PRs calculados para este
                                         exercício.
                                     </p>
                                 ) : (
-                                    <div className="history-table-wrapper">
-                                        <table className="history-table">
+                                    <div className="history-pr-table-wrapper">
+                                        <table className="history-pr-table">
                                             <thead>
                                             <tr>
                                                 <th>Carga</th>
@@ -349,9 +414,7 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
                                             </thead>
                                             <tbody>
                                             {prRows.map((row) => (
-                                                <tr
-                                                    key={row.weight}
-                                                >
+                                                <tr key={row.weight}>
                                                     <td>
                                                         {row.weight} kg
                                                     </td>
@@ -365,7 +428,7 @@ function HistoryPage({ onBack, initialTemplate, initialExercise, user }) {
                                     </div>
                                 )}
                             </section>
-                        </>
+                        </div>
                     )}
                 </>
             )}

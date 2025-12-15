@@ -1,21 +1,30 @@
-// src/firebaseConfig.js
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDIddnotO2FO3R44RiwuN_gAsrqO37GX4M",
-    authDomain: "app-treino-17bbf.firebaseapp.com",
-    projectId: "app-treino-17bbf",
-    storageBucket: "app-treino-17bbf.firebasestorage.app",
-    messagingSenderId: "674294174962",
-    appId: "1:674294174962:web:f244a6931163815f84ec6b"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "COLOQUE_SUA_CHAVE",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "COLOQUE_SEU_AUTH_DOMAIN",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "COLOQUE_SEU_PROJECT_ID",
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "COLOQUE_SEU_STORAGE_BUCKET",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "COLOQUE_SEU_SENDER_ID",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || "COLOQUE_SEU_APP_ID",
 };
 
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-
-// provider do Google pronto para uso
 export const googleProvider = new GoogleAuthProvider();
+
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err?.code === "failed-precondition") {
+        console.warn("Persistência offline do Firestore não pôde ser ativada. Outra aba pode estar usando o banco.");
+        return;
+    }
+    if (err?.code === "unimplemented") {
+        console.warn("Persistência offline do Firestore não é suportada neste navegador.");
+        return;
+    }
+    console.error("Erro ao ativar persistência offline do Firestore", err);
+});
