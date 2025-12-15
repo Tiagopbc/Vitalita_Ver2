@@ -87,7 +87,7 @@ Essa foi uma das coisas que mais me surpreendeu quando testei. A sensação é d
 
 - **Se ainda não tiver o código localmente**, faça o clone em uma pasta da sua preferência:
   ```bash
-  git clone https://github.com/<seu-usuario>/Vitalita_Ver2.git
+  git clone https://github.com/Tiagopbc/Vitalita_Ver2.git
   cd Vitalita_Ver2
   ```
 
